@@ -8,10 +8,10 @@ import pickle
 import json
 import numpy as np
 
+
 def convert_dict_to_json(file_path):
     with open(file_path, 'rb') as fpkl, open('%s.json' % file_path, 'w') as fjson:
         data = pickle.load(fpkl)
-        print(data[:10])
         for k, v in data.items():
             if isinstance(v, np.ndarray):
                 data[k] = v.tolist()
