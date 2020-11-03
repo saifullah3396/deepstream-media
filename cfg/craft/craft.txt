@@ -119,7 +119,7 @@ nvbuf-memory-type=0
 # the infer config file.
 [primary-gie]
 enable=1
-config-file=../models/craft/pgie_config.txt
+config-file=pgie_config.txt
 
 [tracker]
 enable=0
