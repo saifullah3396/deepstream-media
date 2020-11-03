@@ -89,7 +89,7 @@ gie-unique-id=1
 config-file=pgie_config.txt
 
 [secondary-gie0]
-enable=1
+enable=0
 gpu-id=0
 gie-unique-id=2
 operate-on-gie-id=1
