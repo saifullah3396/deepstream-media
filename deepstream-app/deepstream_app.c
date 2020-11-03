@@ -489,19 +489,21 @@ process_meta(AppCtx *appCtx, NvDsBatchMeta *batch_meta)
             obj->text_params.display_text[0] = '\0';
             str_ins_pos = obj->text_params.display_text;
 
-            if (obj->obj_label[0] != '\0')
-                sprintf(str_ins_pos, "%s", obj->obj_label);
-            str_ins_pos += strlen(str_ins_pos);
+            // don't print labels
+            // if (obj->obj_label[0] != '\0')
+            //     sprintf(str_ins_pos, "%s", obj->obj_label);
+            // str_ins_pos += strlen(str_ins_pos);
 
-            if (obj->object_id != UNTRACKED_OBJECT_ID)
-            {
-                /** object_id is a 64-bit sequential value;
-         * but considering the display aesthetic,
-         * trimming to lower 32-bits */
-                guint64 const LOW_32_MASK = 0x00000000FFFFFFFF;
-                sprintf(str_ins_pos, " %lu", (obj->object_id & LOW_32_MASK));
-                str_ins_pos += strlen(str_ins_pos);
-            }
+            // don't print tracking ids
+            //     if (obj->object_id != UNTRACKED_OBJECT_ID)
+            //     {
+            //         /** object_id is a 64-bit sequential value;
+            //  * but considering the display aesthetic,
+            //  * trimming to lower 32-bits */
+            //         guint64 const LOW_32_MASK = 0x00000000FFFFFFFF;
+            //         sprintf(str_ins_pos, " %lu", (obj->object_id & LOW_32_MASK));
+            //         str_ins_pos += strlen(str_ins_pos);
+            //     }
 
             obj->classifier_meta_list =
                 g_list_sort(obj->classifier_meta_list, component_id_compare_func);
