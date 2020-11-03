@@ -1,0 +1,13 @@
+*.o
+*.log
+*.engine
+models/*
+*.weights
+*.caffemodel
+*.zip
+*.so
+deepstream-app/deepstream-app
+*.mp4
+*.jpeg
+*.png
+*.pyc
