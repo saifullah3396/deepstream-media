@@ -1,4 +1,3 @@
-TENSOR_RT=/home/sai/ncai/TensorRT-7.0.0.11
 DEEPSTREAM_PATH=/opt/nvidia/deepstream/deepstream
 CC:= g++
 
