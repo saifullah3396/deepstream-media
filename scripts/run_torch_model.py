@@ -46,7 +46,7 @@ def main():
 
     if args.model == 'craft':
         from models.craft import easyocr
-        model = easyocr.craft.CRAFT()
+        model = easyocr.craft.CRAFT(y_permute=False)
     else:
         print('{} model is not supported.'.format(args.model))
     print('{}/{}.onnx'.format(weights_file_dir, weights_file))
