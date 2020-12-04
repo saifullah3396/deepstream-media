@@ -42,7 +42,7 @@ extern "C" bool NvDsInferFaceRecognitionParser(
         }
 
         std::ifstream dictionary_path(
-            std::string(app_root) + "models/facerecognition/embeddings.json");
+            std::string(app_root) + "/models/facerecognition/embeddings.json");
         Json::Reader reader;
         Json::Value dict;
         if (dictionary_path.is_open() && reader.parse(dictionary_path, dict))

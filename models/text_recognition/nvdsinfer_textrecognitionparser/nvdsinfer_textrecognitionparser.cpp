@@ -35,7 +35,7 @@ extern "C" bool loadModelChars(const char *app_root)
     // load model characters first
     std::ifstream model_configs_file(
         std::string(app_root) +
-        "models/text_recognition/models_config.json");
+        "/models/text_recognition/models_config.json");
     if (
         model_configs_file.is_open() &&
         reader.parse(model_configs_file, model_configs))
@@ -82,7 +82,7 @@ extern "C" bool loadLanguageChars(const char *app_root)
     // load language characters
     std::ifstream lang_characters_file(
         std::string(app_root) +
-        "models/text_recognition/characters/" + lang + "_char.txt");
+        "/models/text_recognition/characters/" + lang + "_char.txt");
     if (lang_characters_file.is_open())
     {
         // create a set of language characters
@@ -132,7 +132,7 @@ extern "C" bool loadLanguageDict(const char *app_root)
     // load language dictionary
     std::ifstream lang_dict_file(
         std::string(app_root) +
-        "models/text_recognition/dict/" + lang + ".txt");
+        "/models/text_recognition/dict/" + lang + ".txt");
     if (lang_dict_file.is_open())
     {
         // create a set of language characters
