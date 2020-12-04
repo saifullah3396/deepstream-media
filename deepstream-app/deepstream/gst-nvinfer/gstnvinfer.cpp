@@ -1276,7 +1276,6 @@ static GstFlowReturn
 gst_nvinfer_process_full_frame (GstNvInfer * nvinfer, GstBuffer * inbuf,
     NvBufSurface * in_surf)
 {
-  std::cout << "Processing full frame..." << std::endl;
   NvOSD_RectParams rect_params;
   NvDsBatchMeta *batch_meta = NULL;
   guint num_filled = 0;
@@ -1347,8 +1346,6 @@ gst_nvinfer_process_full_frame (GstNvInfer * nvinfer, GstBuffer * inbuf,
     rect_params.top = 0;
     rect_params.width = in_surf->surfaceList[i].width;
     rect_params.height = in_surf->surfaceList[i].height;
-    std::cout << "rect_params w: " << rect_params.width << std::endl;
-    std::cout << "rect_params h: " << rect_params.height << std::endl;
 
     /* Scale and convert the buffer. */
     if (get_converted_buffer (nvinfer, in_surf, in_surf->surfaceList + i,
@@ -1368,8 +1365,6 @@ gst_nvinfer_process_full_frame (GstNvInfer * nvinfer, GstBuffer * inbuf,
     frame.obj_meta = nullptr;
     frame.frame_meta = nvds_get_nth_frame_meta (batch_meta->frame_meta_list, i);
     frame.frame_num = frame.frame_meta->frame_num;
-    std::cout << "frame.frame_num  h: " << frame.frame_num << std::endl;
-    std::cout << "frame.batch_index  h: " << frame.batch_index << std::endl;
     frame.batch_index = i;
     //frame.history = nullptr;
     frame.input_surf_params = in_surf->surfaceList + i;

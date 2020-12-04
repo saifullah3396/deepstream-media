@@ -32,17 +32,18 @@
 
 #include "nvdsinfer_backend.h"
 
-namespace nvdsinfer {
+namespace nvdsinfer
+{
 
 using NvDsInferLoggingFunc =
-    std::function<void(NvDsInferLogLevel, const char* msg)>;
+    std::function<void(NvDsInferLogLevel, const char *msg)>;
 
 /**
  * Holds information for one batch for processing.
  */
 typedef struct
 {
-    std::vector<void*> m_DeviceBuffers;
+    std::vector<void *> m_DeviceBuffers;
     std::vector<std::unique_ptr<CudaHostBuffer>> m_HostBuffers;
 
     std::vector<std::unique_ptr<CudaDeviceBuffer>> m_OutputDeviceBuffers;
@@ -59,24 +60,24 @@ typedef struct
 class InferPreprocessor
 {
 public:
-    InferPreprocessor(const NvDsInferNetworkInfo& info, NvDsInferFormat format,
-        const NvDsInferBatchDimsLayerInfo& layerInfo,
-        int id = 0, bool supportsDynamicInputSize = false);
+    InferPreprocessor(const NvDsInferNetworkInfo &info, NvDsInferFormat format,
+                      const NvDsInferBatchDimsLayerInfo &layerInfo,
+                      int id = 0, bool supportsDynamicInputSize = false);
     virtual ~InferPreprocessor() = default;
 
-    void setLoggingFunc(const NvDsInferLoggingFunc& func)
+    void setLoggingFunc(const NvDsInferLoggingFunc &func)
     {
         m_LoggingFunc = func;
     }
-    bool setScaleOffsets(float scale, const std::vector<float>& offsets = {});
-    bool setMeanFile(const std::string& file);
+    bool setScaleOffsets(float scale, const std::vector<float> &offsets = {});
+    bool setMeanFile(const std::string &file);
 
     NvDsInferStatus allocateResource();
     NvDsInferStatus syncStream();
 
-    NvDsInferStatus transform(NvDsInferContextBatchInput& batchInput,
-        void* devBuf, CudaStream& mainStream, CudaEvent* waitingEvent,
-        std::vector<NvDsInferBatchDimsLayerInfo>& allLayersInfo);
+    NvDsInferStatus transform(NvDsInferContextBatchInput &batchInput,
+                              void *devBuf, CudaStream &mainStream, CudaEvent *waitingEvent,
+                              std::vector<NvDsInferBatchDimsLayerInfo> &allLayersInfo);
 
 private:
     NvDsInferStatus readMeanImageFile();
@@ -112,56 +113,56 @@ protected:
 
 public:
     virtual ~InferPostprocessor() = default;
-    void setDlHandle(const std::shared_ptr<DlLibHandle>& dlHandle)
+    void setDlHandle(const std::shared_ptr<DlLibHandle> &dlHandle)
     {
         m_CustomLibHandle = dlHandle;
     }
-    void setNetworkInfo(const NvDsInferNetworkInfo& info)
+    void setNetworkInfo(const NvDsInferNetworkInfo &info)
     {
         m_NetworkInfo = info;
     }
-    void setAllLayerInfo(std::vector<NvDsInferBatchDimsLayerInfo>& info)
+    void setAllLayerInfo(std::vector<NvDsInferBatchDimsLayerInfo> &info)
     {
         m_AllLayerInfo.resize(info.size());
         std::copy(info.begin(), info.end(), m_AllLayerInfo.begin());
     }
-    void setOutputLayerInfo(std::vector<NvDsInferBatchDimsLayerInfo>& info)
+    void setOutputLayerInfo(std::vector<NvDsInferBatchDimsLayerInfo> &info)
     {
         m_OutputLayerInfo.resize(info.size());
         std::copy(info.begin(), info.end(), m_OutputLayerInfo.begin());
     }
-    void setLoggingFunc(const NvDsInferLoggingFunc& func)
+    void setLoggingFunc(const NvDsInferLoggingFunc &func)
     {
         m_LoggingFunc = func;
     }
-    const std::vector<std::vector<std::string>>& getLabels() const
+    const std::vector<std::vector<std::string>> &getLabels() const
     {
         return m_Labels;
     }
     bool needInputCopy() const { return m_CopyInputToHostBuffers; }
 
     virtual NvDsInferStatus initResource(
-        const NvDsInferContextInitParams& initParams);
+        const NvDsInferContextInitParams &initParams);
 
     /* Copy inference output from device to host memory. */
     virtual NvDsInferStatus copyBuffersToHostMemory(
-        NvDsInferBatch& buffer, CudaStream& mainStream);
+        NvDsInferBatch &buffer, CudaStream &mainStream);
 
     virtual NvDsInferStatus postProcessHost(
-        NvDsInferBatch& buffer, NvDsInferContextBatchOutput& output);
+        NvDsInferBatch &buffer, NvDsInferContextBatchOutput &output);
 
-    void freeBatchOutput(NvDsInferContextBatchOutput& batchOutput);
+    void freeBatchOutput(NvDsInferContextBatchOutput &batchOutput);
 
 private:
     /* Parse the output of each frame in batch. */
     virtual NvDsInferStatus parseEachBatch(
-        const std::vector<NvDsInferLayerInfo>& outputLayers,
-        NvDsInferFrameOutput& result) = 0;
+        const std::vector<NvDsInferLayerInfo> &outputLayers,
+        NvDsInferFrameOutput &result) = 0;
 
 protected:
-    NvDsInferStatus parseLabelsFile(const std::string& path);
+    NvDsInferStatus parseLabelsFile(const std::string &path);
     NvDsInferStatus allocDeviceResource();
-    void releaseFrameOutput(NvDsInferFrameOutput& frameOutput);
+    void releaseFrameOutput(NvDsInferFrameOutput &frameOutput);
 
 private:
     DISABLE_CLASS_COPY(InferPostprocessor);
@@ -195,33 +196,32 @@ public:
     ~DetectPostprocessor() override = default;
 
     NvDsInferStatus initResource(
-        const NvDsInferContextInitParams& initParams) override;
+        const NvDsInferContextInitParams &initParams) override;
 
 private:
     NvDsInferStatus parseEachBatch(
-        const std::vector<NvDsInferLayerInfo>& outputLayers,
-        NvDsInferFrameOutput& result) override;
+        const std::vector<NvDsInferLayerInfo> &outputLayers,
+        NvDsInferFrameOutput &result) override;
 
     bool parseBoundingBox(
-        std::vector<NvDsInferLayerInfo> const& outputLayersInfo,
-        NvDsInferNetworkInfo const& networkInfo,
-        NvDsInferParseDetectionParams const& detectionParams,
-        std::vector<NvDsInferObjectDetectionInfo>& objectList);
+        std::vector<NvDsInferLayerInfo> const &outputLayersInfo,
+        NvDsInferNetworkInfo const &networkInfo,
+        NvDsInferParseDetectionParams const &detectionParams,
+        std::vector<NvDsInferObjectDetectionInfo> &objectList);
 
-    std::vector<int> nonMaximumSuppression
-                     (std::vector<std::pair<float, int>>& scoreIndex,
-                      std::vector<NvDsInferParseObjectInfo>& bbox,
-                      const float nmsThreshold);
+    std::vector<int> nonMaximumSuppression(std::vector<std::pair<float, int>> &scoreIndex,
+                                           std::vector<NvDsInferParseObjectInfo> &bbox,
+                                           const float nmsThreshold);
     void clusterAndFillDetectionOutputNMS(NvDsInferDetectionOutput &output);
-    void clusterAndFillDetectionOutputCV(NvDsInferDetectionOutput& output);
-    void clusterAndFillDetectionOutputDBSCAN(NvDsInferDetectionOutput& output);
-    void clusterAndFillDetectionOutputHybrid(NvDsInferDetectionOutput& output);
-    void fillUnclusteredOutput(NvDsInferDetectionOutput& output);
+    void clusterAndFillDetectionOutputCV(NvDsInferDetectionOutput &output);
+    void clusterAndFillDetectionOutputDBSCAN(NvDsInferDetectionOutput &output);
+    void clusterAndFillDetectionOutputHybrid(NvDsInferDetectionOutput &output);
+    void fillUnclusteredOutput(NvDsInferDetectionOutput &output);
     NvDsInferStatus fillDetectionOutput(
-        const std::vector<NvDsInferLayerInfo>& outputLayers,
-        NvDsInferDetectionOutput& output);
+        const std::vector<NvDsInferLayerInfo> &outputLayers,
+        NvDsInferDetectionOutput &output);
     void preClusteringThreshold(NvDsInferParseDetectionParams const &detectionParams,
-            std::vector<NvDsInferObjectDetectionInfo> &objectList);
+                                std::vector<NvDsInferObjectDetectionInfo> &objectList);
 
 private:
     _DS_DEPRECATED_("Use m_ClusterMode instead")
@@ -254,21 +254,21 @@ public:
         : InferPostprocessor(NvDsInferNetworkType_Classifier, id, gpuId) {}
 
     NvDsInferStatus initResource(
-        const NvDsInferContextInitParams& initParams) override;
+        const NvDsInferContextInitParams &initParams) override;
 
 private:
     NvDsInferStatus parseEachBatch(
-        const std::vector<NvDsInferLayerInfo>& outputLayers,
-        NvDsInferFrameOutput& result) override;
+        const std::vector<NvDsInferLayerInfo> &outputLayers,
+        NvDsInferFrameOutput &result) override;
 
     NvDsInferStatus fillClassificationOutput(
-        const std::vector<NvDsInferLayerInfo>& outputLayers,
-        NvDsInferClassificationOutput& output);
+        const std::vector<NvDsInferLayerInfo> &outputLayers,
+        NvDsInferClassificationOutput &output);
 
     bool parseAttributesFromSoftmaxLayers(
-        std::vector<NvDsInferLayerInfo> const& outputLayersInfo,
-        NvDsInferNetworkInfo const& networkInfo, float classifierThreshold,
-        std::vector<NvDsInferAttribute>& attrList, std::string& attrString);
+        std::vector<NvDsInferLayerInfo> const &outputLayersInfo,
+        NvDsInferNetworkInfo const &networkInfo, float classifierThreshold,
+        std::vector<NvDsInferAttribute> &attrList, std::string &attrString);
 
 private:
     float m_ClassifierThreshold = 0.0f;
@@ -283,16 +283,16 @@ public:
         : InferPostprocessor(NvDsInferNetworkType_Segmentation, id, gpuId) {}
 
     NvDsInferStatus initResource(
-        const NvDsInferContextInitParams& initParams) override;
+        const NvDsInferContextInitParams &initParams) override;
 
 private:
     NvDsInferStatus parseEachBatch(
-        const std::vector<NvDsInferLayerInfo>& outputLayers,
-        NvDsInferFrameOutput& result) override;
+        const std::vector<NvDsInferLayerInfo> &outputLayers,
+        NvDsInferFrameOutput &result) override;
 
     NvDsInferStatus fillSegmentationOutput(
-        const std::vector<NvDsInferLayerInfo>& outputLayers,
-        NvDsInferSegmentationOutput& output);
+        const std::vector<NvDsInferLayerInfo> &outputLayers,
+        NvDsInferSegmentationOutput &output);
 
 private:
     float m_SegmentationThreshold = 0.0f;
@@ -305,12 +305,13 @@ public:
         : InferPostprocessor(NvDsInferNetworkType_Other, id, gpuId) {}
 
     NvDsInferStatus initResource(
-        const NvDsInferContextInitParams& initParams) override;
+        const NvDsInferContextInitParams &initParams) override;
 
 private:
     NvDsInferStatus parseEachBatch(
-        const std::vector<NvDsInferLayerInfo>& outputLayers,
-        NvDsInferFrameOutput& result) override {
+        const std::vector<NvDsInferLayerInfo> &outputLayers,
+        NvDsInferFrameOutput &result) override
+    {
         return NVDSINFER_SUCCESS;
     }
 };
@@ -333,7 +334,7 @@ public:
      * initialization steps.
      */
     NvDsInferStatus initialize(NvDsInferContextInitParams &initParams,
-            void *userCtx, NvDsInferContextLoggingFunc logFunc);
+                               void *userCtx, NvDsInferContextLoggingFunc logFunc);
 
 private:
     /**
@@ -347,27 +348,27 @@ private:
     void releaseBatchOutput(NvDsInferContextBatchOutput &batchOutput) override;
     void fillLayersInfo(std::vector<NvDsInferLayerInfo> &layersInfo) override;
     void getNetworkInfo(NvDsInferNetworkInfo &networkInfo) override;
-    const std::vector<std::vector<std::string>>& getLabels() override;
+    const std::vector<std::vector<std::string>> &getLabels() override;
     void destroy() override;
 
     /* Other private methods. */
     NvDsInferStatus initInferenceInfo(
-        const NvDsInferContextInitParams& initParams, BackendContext& ctx);
+        const NvDsInferContextInitParams &initParams, BackendContext &ctx);
     NvDsInferStatus preparePreprocess(
-        const NvDsInferContextInitParams& initParams);
+        const NvDsInferContextInitParams &initParams);
     NvDsInferStatus preparePostprocess(
-        const NvDsInferContextInitParams& initParams);
+        const NvDsInferContextInitParams &initParams);
 
     std::unique_ptr<BackendContext> generateBackendContext(
-        NvDsInferContextInitParams& initParams);
+        NvDsInferContextInitParams &initParams);
     std::unique_ptr<BackendContext> buildModel(
-        NvDsInferContextInitParams& initParams);
+        NvDsInferContextInitParams &initParams);
     bool deserializeEngineAndBackend(const std::string enginePath, int dla,
-        std::shared_ptr<TrtEngine>& engine,
-        std::unique_ptr<BackendContext>& backend,
-        bool supportsDynamicInputSize);
+                                     std::shared_ptr<TrtEngine> &engine,
+                                     std::unique_ptr<BackendContext> &backend,
+                                     bool supportsDynamicInputSize);
     NvDsInferStatus checkBackendParams(
-        BackendContext& ctx, const NvDsInferContextInitParams& initParams);
+        BackendContext &ctx, const NvDsInferContextInitParams &initParams);
 
     NvDsInferStatus getBoundLayersInfo();
     NvDsInferStatus allocateBuffers();
@@ -408,8 +409,8 @@ private:
     /* Queues and synchronization members for processing multiple batches
      * in parallel.
      */
-    GuardQueue<std::list<NvDsInferBatch*>> m_FreeBatchQueue;
-    GuardQueue<std::list<NvDsInferBatch*>> m_ProcessBatchQueue;
+    GuardQueue<std::list<NvDsInferBatch *>> m_FreeBatchQueue;
+    GuardQueue<std::list<NvDsInferBatch *>> m_ProcessBatchQueue;
 
     std::unique_ptr<CudaStream> m_InferStream;
     std::unique_ptr<CudaStream> m_PostprocessStream;
@@ -425,41 +426,49 @@ private:
     bool m_Initialized = false;
 };
 
-}
+} // namespace nvdsinfer
 
-#define printMsg(level, tag_str, fmt, ...)                                  \
-    do {                                                                    \
-        char* baseName = strrchr((char*)__FILE__, '/');                     \
-        baseName = (baseName) ? (baseName + 1) : (char*)__FILE__;           \
-        char logMsgBuffer[5 * _MAX_STR_LENGTH + 1];                             \
-        snprintf(logMsgBuffer, 5 * _MAX_STR_LENGTH,                             \
-            tag_str " NvDsInferContextImpl::%s() <%s:%d> [UID = %d]: " fmt, \
-            __func__, baseName, __LINE__, m_UniqueID, ##__VA_ARGS__);       \
-        if (m_LoggingFunc) {                                                \
-            m_LoggingFunc(level, logMsgBuffer);                             \
-        } else {                                                            \
-            fprintf(stderr, "%s\n", logMsgBuffer);                          \
-        }                                                                   \
+#define printMsg(level, tag_str, fmt, ...)                                       \
+    do                                                                           \
+    {                                                                            \
+        char *baseName = strrchr((char *)__FILE__, '/');                         \
+        baseName = (baseName) ? (baseName + 1) : (char *)__FILE__;               \
+        char logMsgBuffer[5 * _MAX_STR_LENGTH + 1];                              \
+        snprintf(logMsgBuffer, 5 * _MAX_STR_LENGTH,                              \
+                 tag_str " NvDsInferContextImpl::%s() <%s:%d> [UID = %d]: " fmt, \
+                 __func__, baseName, __LINE__, m_UniqueID, ##__VA_ARGS__);       \
+        if (m_LoggingFunc)                                                       \
+        {                                                                        \
+            m_LoggingFunc(level, logMsgBuffer);                                  \
+        }                                                                        \
+        else                                                                     \
+        {                                                                        \
+            fprintf(stderr, "%s\n", logMsgBuffer);                               \
+        }                                                                        \
     } while (0)
 
-#define printError(fmt, ...) \
-    do { \
-        printMsg (NVDSINFER_LOG_ERROR, "Error in", fmt, ##__VA_ARGS__); \
+#define printError(fmt, ...)                                           \
+    do                                                                 \
+    {                                                                  \
+        printMsg(NVDSINFER_LOG_ERROR, "Error in", fmt, ##__VA_ARGS__); \
     } while (0)
 
-#define printWarning(fmt, ...) \
-    do { \
-        printMsg (NVDSINFER_LOG_WARNING, "Warning from", fmt, ##__VA_ARGS__); \
+#define printWarning(fmt, ...)                                               \
+    do                                                                       \
+    {                                                                        \
+        printMsg(NVDSINFER_LOG_WARNING, "Warning from", fmt, ##__VA_ARGS__); \
     } while (0)
 
-#define printInfo(fmt, ...) \
-    do { \
-        printMsg (NVDSINFER_LOG_INFO, "Info from", fmt, ##__VA_ARGS__); \
+#define printInfo(fmt, ...)                                            \
+    do                                                                 \
+    {                                                                  \
+        printMsg(NVDSINFER_LOG_INFO, "Info from", fmt, ##__VA_ARGS__); \
     } while (0)
 
-#define printDebug(fmt, ...) \
-    do { \
-        printMsg (NVDSINFER_LOG_DEBUG, "DEBUG", fmt, ##__VA_ARGS__); \
+#define printDebug(fmt, ...)                                        \
+    do                                                              \
+    {                                                               \
+        printMsg(NVDSINFER_LOG_DEBUG, "DEBUG", fmt, ##__VA_ARGS__); \
     } while (0)
 
 #endif

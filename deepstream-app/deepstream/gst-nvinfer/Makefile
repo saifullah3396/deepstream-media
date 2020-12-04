@@ -23,7 +23,7 @@ NVDS_VERSION:=5.0
 
 CFLAGS+= -fPIC -std=c++11 -DDS_VERSION=\"5.0.0\" \
 	 -I /usr/local/cuda-$(CUDA_VER)/include \
-	 -I /opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/sources/includes \
+	 -I ../includes \
 	 -I ../nvdsinfer -DNDEBUG \
 	 -I $(TENSOR_RT)/include
 
