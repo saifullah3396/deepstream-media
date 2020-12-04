@@ -89,6 +89,7 @@ GST_DEBUG_CATEGORY (APP_CFG_PARSER_CAT);
 #define CONFIG_GROUP_DEWARPER_SOURCE_ID "source-id"
 #define CONFIG_GROUP_DEWARPER_NUM_SURFACES_PER_FRAME "num-surfaces-per-frame"
 
+#define CONFIG_GROUP_GIE_PROCESS_MODE "process-mode"
 #define CONFIG_GROUP_GIE_BATCH_SIZE "batch-size"
 #define CONFIG_GROUP_GIE_MODEL_ENGINE "model-engine-file"
 #define CONFIG_GROUP_GIE_CONFIG_FILE "config-file"
@@ -983,6 +984,11 @@ parse_gie (NvDsGieConfig *config, GKeyFile *key_file, gchar *group, gchar *cfg_f
           g_key_file_get_integer (key_file, group,
           CONFIG_GROUP_GIE_UNIQUE_ID, &error);
       config->is_unique_id_set = TRUE;
+      CHECK_ERROR (error);
+    } else if (!g_strcmp0 (*key, CONFIG_GROUP_GIE_PROCESS_MODE)) {
+      config->process_mode =
+          g_key_file_get_integer (key_file, group,
+          CONFIG_GROUP_GIE_PROCESS_MODE, &error);
       CHECK_ERROR (error);
     } else if (!g_strcmp0 (*key, CONFIG_GROUP_GIE_ID_FOR_OPERATION)) {
       config->operate_on_gie_id =
