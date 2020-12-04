@@ -23,15 +23,15 @@ NVDS_VERSION:=5.0
 
 CFLAGS+= -fPIC -std=c++11 -DDS_VERSION=\"5.0.0\" \
 	 -I /usr/local/cuda-$(CUDA_VER)/include \
-	 -I ../../includes \
-	 -I ../../libs/nvdsinfer -DNDEBUG -I/home/sai/work-ncai/TensorRT-7.0.0.11/include
+	 -I ../includes \
+	 -I ../nvdsinfer -DNDEBUG -I$(TENSOR_RT)/include
 
 GST_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/gst-plugins/
 LIB_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/
 
 LIBS := -shared -Wl,-no-undefined \
 	-L/usr/local/cuda-$(CUDA_VER)/lib64/ -lcudart \
-	-L/home/sai/work-ncai/TensorRT-7.0.0.11/lib
+	-L$(TENSOR_RT)/lib
 
 LIBS+= -L$(LIB_INSTALL_DIR) -lnvdsgst_helper -lnvdsgst_meta -lnvds_meta \
        -lnvds_infer -lnvbufsurface -lnvbufsurftransform -ldl -lpthread \
