@@ -1,13 +1,25 @@
 DEEPSTREAM_PATH=/opt/nvidia/deepstream/deepstream
 CC:= g++
 
-CFLAGS:= -Wall -std=c++11
+CFLAGS:= -Wall -std=c++11 -O2 -s -DNDEBUG
 
-CFLAGS+= -shared -fPIC
+CFLAGS+= -shared -fPIC # -DDEBUG
 
-CFLAGS+= -I${DEEPSTREAM_PATH}/sources/includes
+CFLAGS+= \
+	-I$(DEEPSTREAM_PATH)/sources/includes \
+	-I$(TENSOR_RT)/include \
+	-I/usr/local/include/opencv4/opencv2
 
-LIBS:= -lnvinfer -lnvparsers -lopencv_core -lopencv_imgproc -lopencv_calib3d
+LIBS:= \
+	-lnvinfer \
+	-lnvparsers \
+	-L/usr/local/lib \
+	/usr/local/lib/libopencv_core.so \
+	/usr/local/lib/libopencv_imgproc.so \
+	/usr/local/lib/libopencv_calib3d.so \
+	/usr/local/lib/libopencv_highgui.so \
+	/usr/local/lib/libopencv_imgcodecs.so \
+	-L$(TENSOR_RT)/lib
 LFLAGS:= -Wl,--start-group $(LIBS) -Wl,--end-group
 
 SRCFILES:= nvdsinfer_craftbboxparser.cpp
