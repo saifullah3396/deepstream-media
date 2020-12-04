@@ -167,8 +167,7 @@ TrtBackendContext::canSupportBatchDims(int bindingIdx,
 }
 
 std::unique_ptr<TrtBackendContext>
-createBackendContext(
-  const std::shared_ptr<TrtEngine>& engine, bool supportsDynamicInputSize)
+createBackendContext(const std::shared_ptr<TrtEngine>& engine)
 {
     if (!engine)
     {
@@ -187,10 +186,7 @@ createBackendContext(
 
     std::unique_ptr<TrtBackendContext> backend;
 
-    nvinfer1::Dims engineDims =
-        (*engine)->getBindingDimensions(INPUT_LAYER_INDEX);
-
-    if (hasWildcard(engineDims))
+    if (!(*engine)->hasImplicitBatchDimension())
     {
         /* Engine built with fulldims support */
         assert((*engine)->getNbOptimizationProfiles() > 0);
@@ -198,17 +194,12 @@ createBackendContext(
         if (engine->hasDla())
         {
             backend = std::make_unique<DlaFullDimTrtBackendContext>(
-                std::move(cudaCtx),
-                engine,
-                DEFAULT_CONTEXT_PROFILE_IDX);
+                std::move(cudaCtx), engine, DEFAULT_CONTEXT_PROFILE_IDX);
         }
         else
         {
             backend = std::make_unique<FullDimTrtBackendContext>(
-                std::move(cudaCtx),
-                engine,
-                DEFAULT_CONTEXT_PROFILE_IDX,
-                supportsDynamicInputSize);
+                std::move(cudaCtx), engine, DEFAULT_CONTEXT_PROFILE_IDX);
         }
     }
     else
@@ -342,10 +333,8 @@ DlaImplicitTrtBackendContext::enqueueBuffer(
 
 FullDimTrtBackendContext::FullDimTrtBackendContext(
     UniquePtrWDestroy<nvinfer1::IExecutionContext>&& ctx,
-    std::shared_ptr<TrtEngine> engine, int profile, bool supportsDynamicInputSize)
-    : TrtBackendContext(std::move(ctx), engine),
-    m_ProfileIndex(profile),
-    m_SupportsDynamicInputSize(supportsDynamicInputSize) {}
+    std::shared_ptr<TrtEngine> engine, int profile)
+    : TrtBackendContext(std::move(ctx), engine), m_ProfileIndex(profile) {}
 
 NvDsInferStatus
 FullDimTrtBackendContext::initialize()
@@ -365,19 +354,15 @@ FullDimTrtBackendContext::initialize()
         m_CudaEngine->getFullDimsLayersInfo(m_ProfileIndex, m_AllLayers),
         "Failed to get fullDimLayersInfo of profile idx:%d ", m_ProfileIndex);
 
-    /* Set optimal dims as binding dims for all input layers if dynamic input
-       size is turned off. Otherwise, set max dims in profile to input size */
+    /* Set optimal dims as binding dims for all input layers. */
     for (int i = 0; i < (int)(*m_CudaEngine)->getNbBindings(); i++)
     {
         if (!(*m_CudaEngine)->bindingIsInput(i))
             continue;
 
-        nvinfer1::Dims optDims = m_SupportsDynamicInputSize ?
-            (*m_CudaEngine)->getProfileDimensions(
-              i, m_ProfileIndex, nvinfer1::OptProfileSelector::kMAX) :
-            (*m_CudaEngine)->getProfileDimensions(
-              i, m_ProfileIndex, nvinfer1::OptProfileSelector::kOPT);
-
+        nvinfer1::Dims optDims = (*m_CudaEngine)
+                                     ->getProfileDimensions(i, m_ProfileIndex,
+                                         nvinfer1::OptProfileSelector::kOPT);
         if (!m_Context->setBindingDimensions(i, optDims))
         {
             dsInferError(
@@ -396,7 +381,6 @@ FullDimTrtBackendContext::initialize()
         return NVDSINFER_TENSORRT_ERROR;
     }
 
-    /* Update input and output layer dimensions based on current information */
     for (int i = 0; i < (int)m_AllLayers.size(); ++i)
     {
         NvDsInferBatchDimsLayerInfo& layerInfo = m_AllLayers.at(i);
@@ -445,7 +429,6 @@ FullDimTrtBackendContext::enqueueBuffer(
         nvinfer1::Dims dimsWBatch =
             CombineDimsBatch(batchDims.dims, batchDims.batchSize);
         nvinfer1::Dims lastDimsBatch = m_Context->getBindingDimensions(iL);
-
         if (dimsWBatch != lastDimsBatch)
         {
             if (!m_Context->setBindingDimensions(iL, dimsWBatch))
@@ -456,26 +439,6 @@ FullDimTrtBackendContext::enqueueBuffer(
                     iL, safeStr(dims2Str(dimsWBatch)));
                 return NVDSINFER_INVALID_PARAMS;
             }
-        }
-
-        if (m_SupportsDynamicInputSize) {
-          /* if dynamic input size is possible, reassign all the input and
-           * output layer sizes for post processor */
-          for (int i = 0; i < (int)m_AllLayers.size(); ++i)
-          {
-              NvDsInferBatchDimsLayerInfo& layerInfo = m_AllLayers.at(i);
-
-              nvinfer1::Dims fullInferDims = m_Context->getBindingDimensions(i);
-              assert(!hasWildcard(fullInferDims));
-
-              NvDsInferDims inferDims = {0};
-              int batchSize = 0;
-
-              /* Split the full dims recieved from getBindingDimensions into batchSize
-              * and rest of the dims. */
-              SplitFullDims(fullInferDims, inferDims, batchSize);
-              layerInfo.inferDims = inferDims;
-          }
         }
     }
 

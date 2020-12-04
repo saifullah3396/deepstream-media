@@ -16,6 +16,12 @@
  * message functions.
  *
  */
+ /**
+ * @defgroup gst_mess_evnt_qry Events, Messages and Query based APIs
+ *
+ * Defines Events, Messages and Query-based APIs
+ *
+ */
 
 #ifndef __GST_NVMESSAGE_H__
 #define __GST_NVMESSAGE_H__
@@ -26,7 +32,7 @@ G_BEGIN_DECLS
 
 
 /**
- * @defgroup gst_message_plugin Message Functions
+ * @defgroup gst_message_plugin Messages: Custom Message Functions API
  * Helper functions for custom GStreamer messages posted by DeepStream GStreamer
  * plugins.
  *
@@ -34,7 +40,7 @@ G_BEGIN_DECLS
  * - Stream EOS - Posted by the `NvStreamMuxer` element when it recieves EOS
  *                on one of its sink pads.
  *
- * @ingroup gstreamer_utilities_group
+ * @ingroup gst_mess_evnt_qry
  * @{
  */
 

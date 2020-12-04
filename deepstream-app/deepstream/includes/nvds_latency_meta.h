@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2019-2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
@@ -11,7 +11,7 @@
 
 /**
  * @file
- * <b>Latency API</b>
+ * <b>Defines Latency API</b>
  *
  * @b Description: This file defines an API for measuring module latency.
  */

@@ -24,7 +24,7 @@
  * Specifies GStreamer custom event functions, used to map events
  * to individual sources which are batched together by Gst-nvstreammux.
  *
- * @ingroup NvDsUtilsApi
+ * @ingroup gst_mess_evnt_qry
  * @{
  */
 

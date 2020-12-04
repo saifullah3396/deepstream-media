@@ -20,6 +20,7 @@
 #include <mutex>
 #include <queue>
 #include <string>
+#include <unordered_map>
 
 #include <NvCaffeParser.h>
 #include <NvInfer.h>
@@ -199,13 +200,16 @@ struct BuildParams
 {
     using TensorIOFormat =
         std::tuple<nvinfer1::DataType, nvinfer1::TensorFormats>;
+    using LayerDevicePrecision =
+      std::tuple<nvinfer1::DataType, nvinfer1::DeviceType>;
 
     size_t workspaceSize = kWorkSpaceSize;
     NvDsInferNetworkMode networkMode = NvDsInferNetworkMode_FP32;
     std::string int8CalibrationFilePath;
     int dlaCore = -1;
-    std::vector<TensorIOFormat> inputFormats;
-    std::vector<TensorIOFormat> outputFormats;
+    std::unordered_map<std::string, TensorIOFormat> inputFormats;
+    std::unordered_map<std::string, TensorIOFormat> outputFormats;
+    std::unordered_map<std::string, LayerDevicePrecision> layerDevicePrecisions;
 
 public:
     virtual ~BuildParams(){};

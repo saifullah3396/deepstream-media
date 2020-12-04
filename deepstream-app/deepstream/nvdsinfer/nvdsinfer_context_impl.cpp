@@ -110,12 +110,11 @@ returnInputCudaCallback(cudaStream_t stream,  cudaError_t status, void*  userDat
 
 InferPreprocessor::InferPreprocessor(const NvDsInferNetworkInfo& info,
     NvDsInferFormat format, const NvDsInferBatchDimsLayerInfo& layerInfo,
-    int id, bool supportsDynamicInputSize)
+    int id)
     : m_UniqueID(id),
       m_NetworkInfo(info),
       m_NetworkInputFormat(format),
-      m_NetworkInputLayer(layerInfo),
-      m_SupportsDynamicInputSize(supportsDynamicInputSize)
+      m_NetworkInputLayer(layerInfo)
 {
 }
 
@@ -320,11 +319,11 @@ InferPreprocessor::syncStream()
 
 NvDsInferStatus InferPreprocessor::transform(
     NvDsInferContextBatchInput& batchInput, void* devBuf,
-    CudaStream& mainStream, CudaEvent* waitingEvent,
-    std::vector<NvDsInferBatchDimsLayerInfo>& allLayerInfo)
+    CudaStream& mainStream, CudaEvent* waitingEvent)
 {
     unsigned int batchSize = batchInput.numInputFrames;
     NvDsInferConvertFcn convertFcn = nullptr;
+    NvDsInferConvertFcnFloat convertFcnFloat = nullptr;
 
     /* Make the future jobs on the stream wait till the infer engine consumes
      * the previous contents of the input binding buffer. */
@@ -386,6 +385,14 @@ NvDsInferStatus InferPreprocessor::transform(
             }
             convertFcn = NvDsInferConvert_C1ToP1Float;
             break;
+        case NvDsInferFormat_Tensor:
+            if (batchInput.inputFormat != NvDsInferFormat_Tensor)
+            {
+                printError("Input frame format is not Tensor.");
+                return NVDSINFER_INVALID_PARAMS;
+            }
+            convertFcnFloat = NvDsInferConvert_FtFTensor;
+            break;
         default:
             printError("Unsupported network input format");
             return NVDSINFER_INVALID_PARAMS;
@@ -395,24 +402,19 @@ NvDsInferStatus InferPreprocessor::transform(
      * buffer. */
     for (unsigned int i = 0; i < batchSize; i++)
     {
-        if (!m_SupportsDynamicInputSize) {
-            float* outPtr =
-                (float*)devBuf + i * m_NetworkInputLayer.inferDims.numElements;
+        float* outPtr =
+            (float*)devBuf + i * m_NetworkInputLayer.inferDims.numElements;
 
+        if (convertFcn) {
             /* Input needs to be pre-processed. */
             convertFcn(outPtr, (unsigned char*)batchInput.inputFrames[i],
                 m_NetworkInfo.width, m_NetworkInfo.height, batchInput.inputPitch,
                 m_Scale, m_MeanDataBuffer.get() ? m_MeanDataBuffer->ptr<float>() : nullptr,
                 *m_PreProcessStream);
-        } else {
-            // for dynamic input size, use current frame width and height to
-            // allocate the buffer
-            float* outPtr =
-                (float*)devBuf + i * batchInput.frameDims[i].w * batchInput.frameDims[i].h;
-
+        } else if (convertFcnFloat) {
             /* Input needs to be pre-processed. */
-            convertFcn(outPtr, (unsigned char*)batchInput.inputFrames[i],
-                batchInput.frameDims[i].w, batchInput.frameDims[i].h, batchInput.inputPitch,
+            convertFcnFloat(outPtr, (float *)batchInput.inputFrames[i],
+                m_NetworkInfo.width, m_NetworkInfo.height, batchInput.inputPitch,
                 m_Scale, m_MeanDataBuffer.get() ? m_MeanDataBuffer->ptr<float>() : nullptr,
                 *m_PreProcessStream);
         }
@@ -438,23 +440,6 @@ NvDsInferStatus InferPreprocessor::transform(
     RETURN_CUDA_ERR(
         cudaStreamWaitEvent(mainStream, *m_PreProcessCompleteEvent, 0),
         "Failed to make mainstream wait for preprocess event");
-
-    /* Update input layer info based on current image dimensions */
-    for (unsigned int i = 0; i < batchSize; i++)
-    {
-      if (m_SupportsDynamicInputSize) {
-        for (size_t j = 0; j < allLayerInfo.size(); j++) {
-            NvDsInferLayerInfo& info = allLayerInfo[j];
-            if (!info.isInput) {
-                continue;
-            } else {
-                info.inferDims.d[1] = batchInput.frameDims[i].h;
-                info.inferDims.d[2] = batchInput.frameDims[i].w;
-            }
-        }
-      }
-    }
-
     return NVDSINFER_SUCCESS;
 }
 
@@ -728,6 +713,81 @@ DetectPostprocessor::parseEachBatch(
 }
 
 NvDsInferStatus
+InstanceSegmentPostprocessor::initResource(const NvDsInferContextInitParams& initParams)
+{
+    RETURN_NVINFER_ERROR(InferPostprocessor::initResource(initParams),
+        "init post processing resource failed");
+
+    m_ClusterMode = initParams.clusterMode;
+    if (m_ClusterMode != NVDSINFER_CLUSTER_NONE) {
+        printError(" cluster mode %d not supported with instance segmentation", m_ClusterMode);
+        return NVDSINFER_CONFIG_FAILED;
+    }
+
+    m_NumDetectedClasses = initParams.numDetectedClasses;
+    if (initParams.numDetectedClasses > 0 &&
+        initParams.perClassDetectionParams == nullptr)
+    {
+        printError(
+            "NumDetectedClasses > 0 but PerClassDetectionParams array not "
+            "specified");
+        return NVDSINFER_CONFIG_FAILED;
+    }
+
+    m_PerClassDetectionParams.assign(initParams.perClassDetectionParams,
+        initParams.perClassDetectionParams + m_NumDetectedClasses);
+    m_DetectionParams.numClassesConfigured = initParams.numDetectedClasses;
+    m_DetectionParams.perClassPreclusterThreshold.resize(initParams.numDetectedClasses);
+    m_DetectionParams.perClassPostclusterThreshold.resize(initParams.numDetectedClasses);
+
+    /* Resize the per class vector to the number of detected classes. */
+    m_PerClassInstanceMaskList.resize(initParams.numDetectedClasses);
+
+    /* Fill the class thresholds in the m_DetectionParams structure. This
+     * will be required during parsing. */
+    for (unsigned int i = 0; i < initParams.numDetectedClasses; i++)
+    {
+        m_DetectionParams.perClassPreclusterThreshold[i] =
+            m_PerClassDetectionParams[i].preClusterThreshold;
+        m_DetectionParams.perClassPostclusterThreshold[i] =
+            m_PerClassDetectionParams[i].postClusterThreshold;
+    }
+
+    /* If custom parse function is specified get the function address from the
+     * custom library. */
+    if (m_CustomLibHandle &&
+        !string_empty(initParams.customBBoxInstanceMaskParseFuncName))
+    {
+        m_CustomParseFunc =
+            m_CustomLibHandle->symbol<NvDsInferInstanceMaskParseCustomFunc>(
+                initParams.customBBoxInstanceMaskParseFuncName);
+        if (!m_CustomParseFunc)
+        {
+            printError(
+                "InstanceSegment-postprocessor failed to init resource "
+                "because dlsym failed to get func %s pointer",
+                safeStr(initParams.customBBoxInstanceMaskParseFuncName));
+            return NVDSINFER_CUSTOM_LIB_FAILED;
+        }
+    } else {
+        printError("Custom parse function not found for InstanceSegment-postprocessor");
+        return NVDSINFER_RESOURCE_ERROR;
+    }
+
+    return NVDSINFER_SUCCESS;
+}
+
+NvDsInferStatus
+InstanceSegmentPostprocessor::parseEachBatch(
+    const std::vector<NvDsInferLayerInfo>& outputLayers,
+    NvDsInferFrameOutput& result)
+{
+    result.outputType = NvDsInferNetworkType_InstanceSegmentation;
+    fillDetectionOutput(outputLayers, result.detectionOutput);
+    return NVDSINFER_SUCCESS;
+}
+
+NvDsInferStatus
 ClassifyPostprocessor::initResource(const NvDsInferContextInitParams& initParams)
 {
     RETURN_NVINFER_ERROR(InferPostprocessor::initResource(initParams),
@@ -802,6 +862,7 @@ NvDsInferContextImpl::preparePreprocess(const NvDsInferContextInitParams& initPa
     assert(!m_Preprocessor);
     assert(
             m_NetworkInfo.channels && m_NetworkInfo.width && m_NetworkInfo.height);
+
     switch (initParams.networkInputFormat)
     {
         case NvDsInferFormat_RGB:
@@ -823,6 +884,8 @@ NvDsInferContextImpl::preparePreprocess(const NvDsInferContextInitParams& initPa
                 return NVDSINFER_CONFIG_FAILED;
             }
             break;
+        case NvDsInferFormat_Tensor:
+            break;
         default:
             printError("Unknown input format");
             return NVDSINFER_CONFIG_FAILED;
@@ -830,10 +893,7 @@ NvDsInferContextImpl::preparePreprocess(const NvDsInferContextInitParams& initPa
 
     std::unique_ptr<InferPreprocessor> processor =
         std::make_unique<InferPreprocessor>(m_NetworkInfo,
-                initParams.networkInputFormat,
-                m_InputImageLayerInfo,
-                m_UniqueID,
-                initParams.dynamicInputSize);
+                initParams.networkInputFormat, m_InputImageLayerInfo, m_UniqueID);
     assert(processor);
 
     processor->setLoggingFunc(m_LoggingFunc);
@@ -884,6 +944,9 @@ NvDsInferContextImpl::preparePostprocess(const NvDsInferContextInitParams& initP
             break;
         case NvDsInferNetworkType_Segmentation:
             processor = std::make_unique<SegmentPostprocessor>(m_UniqueID, m_GpuID);
+            break;
+        case NvDsInferNetworkType_InstanceSegmentation:
+            processor = std::make_unique<InstanceSegmentPostprocessor>(m_UniqueID, m_GpuID);
             break;
         case NvDsInferNetworkType_Other:
             processor = std::make_unique<OtherPostprocessor>(m_UniqueID, m_GpuID);
@@ -983,7 +1046,6 @@ NvDsInferContextImpl::initialize(NvDsInferContextInitParams& initParams,
     m_GpuID = initParams.gpuID;
     m_OutputBufferPoolSize = initParams.outputBufferPoolSize;
     m_Batches.resize(m_OutputBufferPoolSize);
-    m_SupportsDynamicInputSize = initParams.dynamicInputSize;
 
     uint32_t uniqueID = initParams.uniqueID;
     m_LoggingFunc = [this, userCtx, logFunc, uniqueID](
@@ -1019,11 +1081,39 @@ NvDsInferContextImpl::initialize(NvDsInferContextInitParams& initParams,
         return NVDSINFER_CONFIG_FAILED;
     }
 
+    if(initParams.uffDimsCHW.c != 0 || initParams.uffDimsCHW.h !=0 ||
+       initParams.uffDimsCHW.w != 0)
+    {
+      printError("Deprecated params uffDimsCHW is being used");
+      return NVDSINFER_INVALID_PARAMS;
+    }
+
+    if(initParams.inputDims.c != 0 || initParams.inputDims.h != 0 ||
+       initParams.inputDims.w != 0)
+    {
+      printError("Deprecated params inputDims is being used");
+      return NVDSINFER_INVALID_PARAMS;
+    }
+
     if (initParams.numOutputLayers > 0 &&
         initParams.outputLayerNames == nullptr)
     {
         printError(
-            "NumOutputLayers > 0 but outputLayerNames array not specified");
+            "numOutputLayers > 0 but outputLayerNames array not specified");
+        return NVDSINFER_CONFIG_FAILED;
+    }
+
+    if(initParams.numOutputIOFormats > 0 &&
+       initParams.outputIOFormats == nullptr)
+    {
+        printError("numOutputIOFormats >0 but outputIOFormats array not specified");
+        return NVDSINFER_CONFIG_FAILED;
+    }
+
+    if (initParams.numLayerDevicePrecisions > 0 &&
+       initParams.layerDevicePrecisions == nullptr)
+    {
+        printError("numLayerDevicePrecisions >0 but layerDevicePrecisions array not specified");
         return NVDSINFER_CONFIG_FAILED;
     }
 
@@ -1412,10 +1502,9 @@ NvDsInferContextImpl::queueInputBatch(NvDsInferContextBatchInput &batchInput)
     std::shared_ptr<CudaEvent> preprocWaitEvent = m_InputConsumedEvent;
 
     assert(m_Preprocessor && m_InputConsumedEvent);
-    auto allLayerInfo = m_AllLayerInfo;
     RETURN_NVINFER_ERROR(m_Preprocessor->transform(batchInput,
                              m_BindingBuffers[INPUT_LAYER_INDEX],
-                             *m_InferStream, preprocWaitEvent.get(), allLayerInfo),
+                             *m_InferStream, preprocWaitEvent.get()),
         "Preprocessor transform input data failed.");
 
     /* We may use multiple sets of the output device and host buffers since
@@ -1434,7 +1523,7 @@ NvDsInferContextImpl::queueInputBatch(NvDsInferContextBatchInput &batchInput)
     /* Fill the array of binding buffers for the current batch. */
     std::vector<void*>& bindings = safeRecyleBatch->m_DeviceBuffers;
     auto backendBuffer = std::make_shared<BackendBatchBuffer>(
-        bindings, allLayerInfo, batchSize);
+        bindings, m_AllLayerInfo, batchSize);
     assert(m_BackendContext && backendBuffer);
     assert(m_InferStream && m_InputConsumedEvent && m_InferCompleteEvent);
 
@@ -1453,23 +1542,6 @@ NvDsInferContextImpl::queueInputBatch(NvDsInferContextBatchInput &batchInput)
     RETURN_CUDA_ERR(
         cudaStreamWaitEvent(*m_PostprocessStream, *m_InferCompleteEvent, 0),
         "postprocessing cuda waiting event failed ");
-
-    /* In case of dynamic input, the output layer size must have changed after
-       the change in inference context, so update post processor size as well */
-    if (m_SupportsDynamicInputSize) {
-      m_OutputLayerInfo.clear();
-      for (int i = 0; i < m_AllLayerInfo.size(); i++)
-      {
-          NvDsInferBatchDimsLayerInfo info = m_BackendContext->getLayerInfo(i);
-          if (!info.isInput) {
-              m_OutputLayerInfo.push_back(info);
-          }
-      }
-
-      m_Postprocessor->setAllLayerInfo(allLayerInfo);
-      m_Postprocessor->setOutputLayerInfo(m_OutputLayerInfo);
-    }
-
     RETURN_NVINFER_ERROR(m_Postprocessor->copyBuffersToHostMemory(
                              *safeRecyleBatch, *m_PostprocessStream),
         "post cuda process failed.");
@@ -1604,8 +1676,7 @@ NvDsInferContextImpl::checkBackendParams(BackendContext& ctx,
 bool
 NvDsInferContextImpl::deserializeEngineAndBackend(const std::string enginePath,
         int dla, std::shared_ptr<TrtEngine>& engine,
-        std::unique_ptr<BackendContext>& backend,
-        bool supportsDynamicInputSize)
+        std::unique_ptr<BackendContext>& backend)
 {
     auto builder = std::make_unique<TrtModelBuilder>(
         m_GpuID, *gTrtLogger, m_CustomLibHandle);
@@ -1619,7 +1690,7 @@ NvDsInferContextImpl::deserializeEngineAndBackend(const std::string enginePath,
             "deserialize engine from file :%s failed", safeStr(enginePath));
         return false;
     }
-    auto newBackend = createBackendContext(newEngine, supportsDynamicInputSize);
+    auto newBackend = createBackendContext(newEngine);
     if (!newBackend)
     {
         printWarning("create backend context from engine from file :%s failed",
@@ -1678,7 +1749,7 @@ NvDsInferContextImpl::buildModel(NvDsInferContextInitParams& initParams)
     }
 
     std::unique_ptr<BackendContext> backend;
-    auto newBackend = createBackendContext(engine, initParams.dynamicInputSize);
+    auto newBackend = createBackendContext(engine);
     if (!newBackend)
     {
         printWarning("create backend context from engine failed");
@@ -1718,11 +1789,7 @@ NvDsInferContextImpl::generateBackendContext(NvDsInferContextInitParams& initPar
     if (!string_empty(initParams.modelEngineFilePath))
     {
         if (!deserializeEngineAndBackend(
-                initParams.modelEngineFilePath,
-                dla,
-                engine,
-                backend,
-                initParams.dynamicInputSize))
+                initParams.modelEngineFilePath, dla, engine, backend))
         {
             printWarning(
                 "deserialize backend context from engine from file :%s failed, "
@@ -1878,7 +1945,6 @@ NvDsInferContext_ResetInitParams (NvDsInferContextInitParams *initParams)
     initParams->networkScaleFactor = 1.0;
     initParams->networkType = NvDsInferNetworkType_Detector;
     initParams->outputBufferPoolSize = NVDSINFER_MIN_OUTPUT_BUFFERPOOL_SIZE;
-    initParams->dynamicInputSize = 0;
 }
 
 const char *

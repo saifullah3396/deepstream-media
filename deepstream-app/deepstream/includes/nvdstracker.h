@@ -225,7 +225,7 @@ typedef struct _NvMOTObjToTrackList
  *
  * @note @a numBuffers is supposed to be less than or equal to
  *  @a numTransforms in @ref NvMOTConfig.
- * @note The metadata in the @ref NvBufSurfaceParams structures
+ * @note The metadata in the NvBufSurfaceParams structures
  *  which @a bufferList points to must be checked with the parameters
  *  specified in @a perTransformBatchConfig in NvMOTConfig.
  */
@@ -332,6 +332,8 @@ typedef struct _NvMOTQuery
     NvBufSurfaceMemType memType;
     /** Holds a Boolean which is true if batch processing is supported. */
     bool supportBatchProcessing;
+    /** Holds a Boolean which is true if outputing past frame is supported. */
+    bool supportPastFrame;
 } NvMOTQuery;
 
 /**

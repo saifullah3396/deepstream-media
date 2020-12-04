@@ -17,6 +17,13 @@
  * The NvBufSurface API provides methods to allocate / deallocate, map / unmap
  * and copy batched buffers.
  */
+ /**
+ * @defgroup  ds_nvbuf_api Buffer Management API module
+ *
+ * This section describes types and functions of NvBufSurface application
+ * programming interface.
+ *
+ */
 
 #ifndef NVBUFSURFACE_H_
 #define NVBUFSURFACE_H_
@@ -29,12 +36,11 @@ extern "C"
 {
 #endif
 
-/** @name NvBufSurface types and functions.
- * This section describes types and functions of NvBufSurface application
+/** @defgroup ds_aaa NvBufSurface Types and Functions
+ * Defines types and functions of \ref NvBufSurface application
  * programming interface.
- */
-
-/** @{ */
+ * @ingroup ds_nvbuf_api
+ * @{ */
 
 /** Defines the default padding length for reserved fields of structures. */
 #define STRUCTURE_PADDING  4

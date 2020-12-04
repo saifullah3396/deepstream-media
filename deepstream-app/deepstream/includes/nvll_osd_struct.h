@@ -1,37 +1,19 @@
 /*
  * Copyright (c) 2019-2020, NVIDIA CORPORATION.  All rights reserved.
  *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *  1. Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *  3. The names of its contributors may not be used to endorse or promote
- *     products derived from this software without specific prior written
- *     permission.
+ * NVIDIA Corporation and its licensors retain all intellectual property
+ * and proprietary rights in and to this software, related documentation
+ * and any modifications thereto.  Any use, reproduction, disclosure or
+ * distribution of this software and related documentation without an express
+ * license agreement from NVIDIA Corporation is strictly prohibited.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- *  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- *  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /**
  * @file
  * <b>NVIDIA Multimedia Utilities: On-Screen Display Manager</b>
  *
- * This file defines the NvOSD library to be used to draw rectangles and text
+ * This file defines the NvOSD library used to draw rectangles and text
  * over the frame.
  */
 
@@ -45,6 +27,8 @@
 
 #ifndef __NVLL_OSD_STRUCT_DEFS__
 #define __NVLL_OSD_STRUCT_DEFS__
+
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -78,6 +62,21 @@ typedef enum
   /** Specifies arrow heads at both start and end = 2. */
   BOTH_HEAD
 } NvOSD_Arrow_Head_Direction;
+
+/**
+ * Holds unclipped bounding box coordinates of the object.
+ */
+typedef struct _NvBbox_Coords {
+  float left;            /**< Holds the box's left coordinate
+                                     in pixels. */
+
+  float top;             /**< Holds the box's top coordinate
+                                     in pixels. */
+
+  float width;           /**< Holds the box's width in pixels. */
+
+  float height;          /**< Holds the box's height in pixels. */
+} NvBbox_Coords;
 
 /**
  * Holds the color parameters of the box or text to be overlayed.
@@ -167,6 +166,17 @@ typedef struct _NvOSD_RectParams {
   int has_color_info;
   int color_id;
 } NvOSD_RectParams;
+
+/**
+ * Holds the mask parameters of the segment to be overlayed
+ */
+typedef struct _NvOSD_MaskParams {
+  float *data;                   /** Mask data */
+  unsigned int size;             /** Mask size */
+  float threshold;               /** Threshold for binarization */
+  unsigned int width;            /** Mask width */
+  unsigned int height;           /** Mask height */
+} NvOSD_MaskParams;
 
 /**
  * Holds the box parameters of a line to be overlayed.

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2018-2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -133,6 +133,10 @@ typedef enum
     /** Specifies a segmentation network. A segmentation network classifies
      each pixel into one of several classes. */
     NvDsInferNetworkType_Segmentation,
+    /** Specifies a instance segmentation network. A instance segmentation
+     network detects objects, bounding box and mask for objects, and
+     their classes in an input frame */
+    NvDsInferNetworkType_InstanceSegmentation,
     /** Specifies other. Output layers of an "other" network are not parsed by
      NvDsInferContext. This is useful for networks that produce custom output.
      Output can be parsed by the NvDsInferContext client or can be combined
@@ -155,6 +159,8 @@ typedef enum
     NvDsInferFormat_RGBA,
     /** Specifies 32-bit interleaved B-G-R-x format. */
     NvDsInferFormat_BGRx,
+    /** NCHW planar */
+    NvDsInferFormat_Tensor,
     NvDsInferFormat_Unknown = 0xFFFFFFFF,
 } NvDsInferFormat;
 
@@ -205,6 +211,9 @@ typedef struct
     float minScore;
     /** IOU threshold to be used with NMS mode of clustering. */
     float nmsIOUThreshold;
+    /** Number of objects with objects to be filtered in the decensding order
+     * of probability */
+    int topK;
 } NvDsInferDetectionParams;
 
 /**
@@ -246,11 +255,11 @@ typedef struct _NvDsInferContextInitParams
     char int8CalibrationFilePath[_PATH_MAX];
 
     union {
-        /** Holds the input dimensions for the model. */
-        NvDsInferDimsCHW inputDims;
-        /** Holds the input dimensions for the UFF model. */
-        NvDsInferDimsCHW uffDimsCHW _DS_DEPRECATED_("Use inputDims instead.");
-    };
+      /** Holds the input dimensions for the model. */
+      NvDsInferDimsCHW inputDims;
+      /** Holds the input dimensions for the UFF model. */
+      NvDsInferDimsCHW uffDimsCHW;
+    } _DS_DEPRECATED_("Use inferInputDims instead.");
 
     /** Holds the original input order for the UFF model. */
     NvDsInferTensorOrder uffInputOrder;
@@ -317,6 +326,7 @@ typedef struct _NvDsInferContextInitParams
     /** Holds the number of output layer names. */
     unsigned int numOutputLayers;
 
+
     /** Holds the pathname of the library containing custom methods
      required to support the network. */
     char customLibPath[_PATH_MAX];
@@ -361,14 +371,30 @@ typedef struct _NvDsInferContextInitParams
      */
     unsigned int workspaceSize;
 
-    /** Whether the input image dimensions can be dynamic or not */
-    unsigned int dynamicInputSize;
-
     /** Inference input dimensions for runtime engine */
     NvDsInferDimsCHW inferInputDims;
 
     /** Holds the type of clustering mode */
     NvDsInferClusterMode clusterMode;
+
+    /** Holds the name of the bounding box and instance mask parse function
+     in the custom library. */
+    char customBBoxInstanceMaskParseFuncName[_MAX_STR_LENGTH];
+
+    /** Can be used to specify the format and datatype for bound output layers.
+     * For each layer specified the format is
+     * "<layer-name>:<data-type>:<format>" */
+    char ** outputIOFormats;
+    /** Holds number of output IO formats specified. */
+    unsigned int numOutputIOFormats;
+
+    /**Can be used to specify the device type and inference precision of layers.
+     * For each layer specified the format is
+     * "<layer-name>:<device-type>:<precision>" */
+    char ** layerDevicePrecisions;
+    /** Holds number of layer device precisions specified */
+    unsigned int numLayerDevicePrecisions;
+
 } NvDsInferContextInitParams;
 
 /**
@@ -388,8 +414,6 @@ typedef struct
     /** Holds a pointer to an array of pointers to input frame buffers.
      The size of the array must be at least @a numInputFrames. */
     void** inputFrames;
-    /** Holds input dimensions of all the frames */
-    NvDsInferDimsCHW* frameDims;
     /** Holds the number of input frames, i.e. the size of the batch. */
     unsigned int numInputFrames;
     /** Holds the format of the frame contents. */
@@ -422,6 +446,14 @@ typedef struct
     char *label;
     /* confidence score of the detected object. */
     float confidence;
+    /* Instance mask information for the object. */
+    float *mask;
+    /** Holds width of mask */
+    unsigned int mask_width;
+    /** Holds height of mask */
+    unsigned int mask_height;
+    /** Holds size of mask in bytes*/
+    unsigned int mask_size;
 } NvDsInferObject;
 
 /**

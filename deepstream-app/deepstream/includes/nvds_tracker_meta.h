@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
@@ -7,6 +7,18 @@
  * distribution of this software and related documentation without an express
  * license agreement from NVIDIA Corporation is strictly prohibited.
  *
+ */
+/**
+ * @file
+ * <b>Defines Tracker Metadata</b>
+ */
+/**
+ * @defgroup  ee_tracker_group Tracker Metadata
+ *
+ * Specifies metadata concerning tracking.
+ *
+ * @ingroup NvDsMetaApi
+ * @{
  */
 #ifndef _NVDS_TRACKER_META_H_
 #define _NVDS_TRACKER_META_H_
@@ -22,10 +34,10 @@ extern "C"
 
 typedef struct _NvDsPastFrameObj
 {
-	uint32_t frameNum;
-	NvOSD_RectParams tBbox;
-	float confidence;
-	uint32_t age;
+    uint32_t frameNum;
+    NvOSD_RectParams tBbox;
+    float confidence;
+    uint32_t age;
 } NvDsPastFrameObj;
 
 /**
@@ -72,3 +84,5 @@ typedef struct _NvDsPastFrameObjBatch
 #endif
 
 #endif
+
+/** @} */

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
@@ -7,6 +7,18 @@
  * distribution of this software and related documentation without an express
  * license agreement from NVIDIA Corporation is strictly prohibited.
  *
+ */
+/**
+ * @file
+ * <b>NVIDIA DeepStream: Object Encoder</b>
+ */
+/**
+ * @defgroup  ee_object_encoder Object Encoder API
+ *
+ * Defines APIs for Object Encoder.
+ *
+ * @ingroup NvllBatchJpegEncodeinterfaceApi
+ * @{
  */
 
 #ifndef __NVDS_ENCODE_OBJECT_H__
@@ -17,7 +29,7 @@ extern "C"
 {
 #endif
 
-#define file_name_size 256
+#define FILE_NAME_SIZE (1024)
 struct _NvDsObjEncCtx;
 
 /** Opaque Handle to the Object Encoder Context */
@@ -51,7 +63,7 @@ typedef struct _NvDsObjEncUsrArgs
    * "frame-number_stream-number_object-number_object-type_widthxheight.jpg".
    * For example - 0_2_3_PERSON_126x148.jpg
    */
-  char fileNameImg[file_name_size];
+  char fileNameImg[FILE_NAME_SIZE];
   /** Object number in the frame */
   int objNum;
 } NvDsObjEncUsrArgs;
@@ -77,3 +89,5 @@ void nvds_obj_enc_destroy_context (NvDsObjEncCtxHandle);
 #endif
 
 #endif
+
+/** @} */

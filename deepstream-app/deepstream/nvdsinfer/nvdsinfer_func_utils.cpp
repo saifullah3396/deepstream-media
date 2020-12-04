@@ -13,8 +13,10 @@
 #include <iomanip>
 #include <iostream>
 #include <numeric>
+#include <unordered_set>
 
 #include "nvdsinfer_func_utils.h"
+#include "nvdsinfer_model_builder.h"
 
 namespace nvdsinfer {
 
@@ -370,6 +372,129 @@ void dsInferLogPrint__(NvDsInferLogLevel level, const char* fmt, ...)
 
     std::unique_lock<std::mutex> locker(gLogEnv.printMutex);
     fprintf(f, "%s: %s\n", strLogLevel(level), logMsgBuffer.data());
+}
+
+bool isValidOutputFormat(const std::string& fmt)
+{
+    static std::unordered_set<std::string> ioFmt{"chw","chw2","chw4","hwc8","chw16","chw32"};
+    return ioFmt.find(fmt) != ioFmt.end() ? true : false;
+}
+
+bool isValidOutputDataType(const std::string& dataType)
+{
+    static std::unordered_set<std::string> ioDataType{"fp32","fp16","int32","int8"};
+    return ioDataType.find(dataType) != ioDataType.end() ? true : false;
+}
+
+nvinfer1::DataType str2DataType(const std::string& dataType)
+{
+    if(!dataType.compare("fp32"))
+        return nvinfer1::DataType::kFLOAT;
+    else if (!dataType.compare("fp16"))
+        return nvinfer1::DataType::kHALF;
+    else if (!dataType.compare("int32"))
+        return nvinfer1::DataType::kINT32;
+    else if(!dataType.compare("int8"))
+        return nvinfer1::DataType::kINT8;
+    else
+        dsInferError("Invalid datatype string %s. Using default kFLOAT datatype", dataType.c_str());
+
+    return nvinfer1::DataType::kFLOAT;
+}
+
+uint32_t str2TensorFormat(const std::string& fmt)
+{
+    if(!fmt.compare("chw"))
+        return 1U << (uint32_t)nvinfer1::TensorFormat::kLINEAR;
+    else if(!fmt.compare("chw2"))
+        return 1U << (uint32_t)nvinfer1::TensorFormat::kCHW2;
+    else if(!fmt.compare("chw4"))
+        return 1U << (uint32_t)nvinfer1::TensorFormat::kCHW4;
+    else if(!fmt.compare("hwc8"))
+        return 1U << (uint32_t)nvinfer1::TensorFormat::kHWC8;
+    else if(!fmt.compare("chw16"))
+        return 1U << (uint32_t)nvinfer1::TensorFormat::kCHW16;
+    else if(!fmt.compare("chw32"))
+        return 1U << (uint32_t)nvinfer1::TensorFormat::kCHW32;
+    else
+        dsInferError("Invalid tensor format string %s. Using default kLINEAR", fmt.c_str());
+
+    return 1U << (uint32_t)nvinfer1::TensorFormat::kLINEAR;
+}
+
+bool validateIOTensorNames(const BuildParams& params,
+            const  nvinfer1::INetworkDefinition& network)
+{
+    for(auto fmt : params.inputFormats)
+    {
+        bool found = false;
+        for(int i=0; !found && (i < network.getNbInputs()); ++i)
+        {
+            auto input = network.getInput(i);
+            if(!fmt.first.compare(input->getName()))
+                found = true;
+        }
+        if(!found)
+        {
+            dsInferError("Invalid input layer name specified %s", fmt.first.c_str());
+            return false;
+        }
+    }
+
+    for(auto fmt : params.outputFormats)
+    {
+        bool found = false;
+        for(int i=0; !found && (i < network.getNbOutputs()); ++i)
+        {
+            auto output = network.getOutput(i);
+            if(!fmt.first.compare(output->getName()))
+                found = true;
+        }
+        if(!found)
+        {
+            dsInferError("Invalid output layer name specified %s", fmt.first.c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isValidDeviceType(const std::string& dev)
+{
+  static std::unordered_set<std::string> deviceType{"gpu","dla"};
+  return deviceType.find(dev) != deviceType.end() ? true : false;
+}
+
+bool isValidPrecisionType(const std::string& dataType)
+{
+  static std::unordered_set<std::string> precisionType{"fp32","fp16","int8"};
+  return precisionType.find(dataType) != precisionType.end() ? true : false;
+}
+
+nvinfer1::DataType str2PrecisionType(const std::string& dataType)
+{
+  if(!dataType.compare("fp32"))
+    return nvinfer1::DataType::kFLOAT;
+  else if (!dataType.compare("fp16"))
+    return nvinfer1::DataType::kHALF;
+  else if(!dataType.compare("int8"))
+    return nvinfer1::DataType::kINT8;
+  else
+    dsInferError("Invalid precisionType string %s. Using default kFLOAT(fp32) precisonType", dataType.c_str());
+
+  return nvinfer1::DataType::kFLOAT;
+}
+
+nvinfer1::DeviceType str2DeviceType(const std::string& deviceType)
+{
+  if(!deviceType.compare("gpu"))
+    return nvinfer1::DeviceType::kGPU;
+  else if (!deviceType.compare("dla"))
+    return nvinfer1::DeviceType::kDLA;
+  else
+    dsInferError("Invalid deviceType string %s. Using default kGPU deviceType", deviceType.c_str());
+
+  return nvinfer1::DeviceType::kGPU;
 }
 
 } // namespace nvdsinfer

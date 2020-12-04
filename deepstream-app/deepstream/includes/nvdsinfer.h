@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2017-2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
@@ -153,6 +153,37 @@ typedef struct
  * A typedef defined to maintain backward compatibility.
  */
 typedef NvDsInferObjectDetectionInfo NvDsInferParseObjectInfo;
+
+/**
+ * Holds information about one parsed object and instance mask from a detector's output.
+ */
+typedef struct
+{
+  /** Holds the ID of the class to which the object belongs. */
+  unsigned int classId;
+
+  /** Holds the horizontal offset of the bounding box shape for the object. */
+  float left;
+  /** Holds the vertical offset of the object's bounding box. */
+  float top;
+  /** Holds the width of the object's bounding box. */
+  float width;
+  /** Holds the height of the object's bounding box. */
+  float height;
+
+  /** Holds the object detection confidence level; must in the range
+   [0.0,1.0]. */
+  float detectionConfidence;
+
+  /** Holds object segment mask */
+  float *mask;
+  /** Holds width of mask */
+  unsigned int mask_width;
+  /** Holds height of mask */
+  unsigned int mask_height;
+  /** Holds size of mask in bytes*/
+  unsigned int mask_size;
+} NvDsInferInstanceMaskInfo;
 
 /**
  * Holds information about one classified attribute.

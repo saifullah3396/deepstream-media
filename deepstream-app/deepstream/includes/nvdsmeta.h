@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2019-2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
@@ -11,7 +11,7 @@
 
 /**
  * @file
- * <b>NVIDIA DeepStream Metadata Structures </b>
+ * <b>Defines NVIDIA DeepStream Metadata Structures </b>
  *
  * @b Description: This file defines DeepStream metadata structures.
  */
@@ -26,6 +26,8 @@
 
 #ifndef _NVDSMETA_NEW_H_
 #define _NVDSMETA_NEW_H_
+
+#include <stdbool.h>
 
 #include "glib.h"
 #include "gmodule.h"
@@ -128,6 +130,10 @@ typedef enum {
   NVDS_CROP_IMAGE_META,
   /** metadata type to be set for tracking previous frames */
   NVDS_TRACKER_PAST_FRAME_META,
+  /** Specifies metadata type for formed audio batch. */
+  NVDS_AUDIO_BATCH_META,
+  /** Specifies metadata type for audio frame. */
+  NVDS_AUDIO_FRAME_META,
   /** Reserved field */
   NVDS_RESERVED_META = 4095,
   /**
@@ -149,6 +155,15 @@ typedef enum {
   NVDS_START_USER_META = NVDS_GST_CUSTOM_META + 4096 + 1,
   NVDS_FORCE32_META = 0x7FFFFFFF
 } NvDsMetaType;
+
+/**
+ * Holds unclipped positional bounding box coordinates of the object processed
+ * by the component.
+ */
+typedef struct _NvDsComp_BboxInfo
+{
+  NvBbox_Coords org_bbox_coords;
+} NvDsComp_BboxInfo;
 
 /**
  * Holds information about a given metadata pool.
@@ -212,8 +227,10 @@ typedef struct _NvDsBatchMeta {
   /** Holds a pointer to a pool of pointers of type @ref NvDsLabelInfo,
    representing a pool of label metas. */
   NvDsMetaPool *label_info_meta_pool;
-  /** Holds a pointer to a list of pointers of type NvDsFrameMeta,
-   representing frame metas used in the current batch. */
+  /** Holds a pointer to a list of pointers of type NvDsFrameMeta
+   or NvDsAudioFrameMeta (when the batch represent audio batch),
+   representing frame metas used in the current batch.
+   */
   NvDsFrameMetaList *frame_meta_list;
   /** Holds a pointer to a list of pointers of type NvDsUserMeta,
    representing user metas in the current batch. */
@@ -298,15 +315,32 @@ typedef struct _NvDsObjectMeta {
   /** Holds a unique ID for tracking the object. @ref UNTRACKED_OBJECT_ID
    indicates that the object has not been tracked. */
   guint64 object_id;
+  /** Holds a structure containing bounding box parameters of the object when
+    detected by detector. */
+  NvDsComp_BboxInfo detector_bbox_info;
+  /** Holds a structure containing bounding box coordinates of the object when
+   * processed by tracker. */
+  NvDsComp_BboxInfo tracker_bbox_info;
   /** Holds a confidence value for the object, set by the inference
-   component. Confidence will be set to -0.1, if "Group Rectangles" mode of
+   component. confidence will be set to -0.1, if "Group Rectangles" mode of
    clustering is chosen since the algorithm does not preserve confidence
-   values */
+   values. Also, for objects found by tracker and not inference component,
+   confidence will be set to -0.1 */
   gfloat confidence;
+  /** Holds a confidence value for the object set by nvdcf_tracker.
+   * tracker_confidence will be set to -0.1 for KLT and IOU tracker */
+  gfloat tracker_confidence;
   /** Holds a structure containing positional parameters of the object
-   in the frame. Can also be used to overlay borders or semi-transparent boxes
-   on objects. @see NvOSD_RectParams. */
+   * processed by the last component that updates it in the pipeline.
+   * e.g. If the tracker component is after the detector component in the
+   * pipeline then positinal parameters are from tracker component.
+   * Positional parameters are clipped so that they do not fall outside frame
+   * boundary. Can also be used to overlay borders or semi-transparent boxes on
+   * objects. @see NvOSD_RectParams. */
   NvOSD_RectParams rect_params;
+  /** Holds mask parameters for the object. This mask is overlayed on object
+   * @see NvOSD_MaskParams. */
+  NvOSD_MaskParams mask_params;
   /** Holds text describing the object. This text can be overlayed on the
    standard text that identifies the object. @see NvOSD_TextParams. */
   NvOSD_TextParams text_params;

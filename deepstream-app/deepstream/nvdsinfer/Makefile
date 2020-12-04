@@ -29,7 +29,7 @@ LIB_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/
 
 CFLAGS+= -fPIC -Wno-deprecated-declarations -std=c++14 \
 	 -I /usr/local/cuda-$(CUDA_VER)/include \
-	 -I ../includes -DNDEBUG -I $(TENSOR_RT)/include
+	 -I ../../includes -DNDEBUG -I/home/sai/work-ncai/TensorRT-7.0.0.11/include
 
 ifeq ($(shell uname -m), aarch64)
 CFLAGS+=-I/usr/include/opencv4
@@ -39,7 +39,7 @@ LIBS := -shared -Wl,-no-undefined \
 	 -lnvinfer -lnvinfer_plugin -lnvonnxparser -lnvparsers \
 	-L/usr/local/cuda-$(CUDA_VER)/lib64/ -lcudart \
 	-lopencv_objdetect -lopencv_imgproc -lopencv_core \
-	-L$(TENSOR_RT)/lib
+	-L/home/sai/work-ncai/TensorRT-7.0.0.11/lib
 
 LIBS+= -L$(LIB_INSTALL_DIR) -lnvdsgst_helper -lnvdsgst_meta -lnvds_meta \
        -lnvds_inferutils -ldl \

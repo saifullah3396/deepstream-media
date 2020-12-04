@@ -1,40 +1,27 @@
 /*
  * Copyright (c) 2019-2020, NVIDIA CORPORATION.  All rights reserved.
  *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *  1. Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *  3. The names of its contributors may not be used to endorse or promote
- *     products derived from this software without specific prior written
- *     permission.
+ * NVIDIA Corporation and its licensors retain all intellectual property
+ * and proprietary rights in and to this software, related documentation
+ * and any modifications thereto.  Any use, reproduction, disclosure or
+ * distribution of this software and related documentation without an express
+ * license agreement from NVIDIA Corporation is strictly prohibited.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- *  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- *  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /**
  * @file
- * <b>NVIDIA Multimedia Utilities: On-Screen Display Manager</b>
+ * <b>NVIDIA Multimedia Utilities: On-Screen Display API</b>
  *
  * This file defines the NvOSD library, used to draw rectangles and text
  * over the frame.
  */
-
+/**
+ * @defgroup NvDsOsdApi On-Screen Display API
+ *
+ * Defines the functions of On-screen Display APIs
+ *
+ */
 /**
  * @defgroup ee_nvosd_api_group On-Screen Display API
  * Defines the NvOSD library to be used to draw rectangles and text
@@ -88,6 +75,21 @@ typedef struct _NvOSD_FrameRectParams
   /** Holds the rectangles' parameters. */
   NvOSD_RectParams *rect_params_list;
 } NvOSD_FrameRectParams;
+
+/** Holds information about the rectangles in a frame. */
+typedef struct _NvOSD_FrameSegmentMaskParams
+{
+  /** Holds a pointer to the buffer containing the frame. */
+  NvBufSurfaceParams *buf_ptr;
+  /** Holds the OSD mode to be used for processing. */
+  NvOSD_Mode mode;
+  /** Holds the number of rectangles. */
+  int num_segments;
+  /** Holds the rectangles' parameters. */
+  NvOSD_RectParams *rect_params_list;
+  /** Holds mask parameters */
+  NvOSD_MaskParams *mask_params_list;
+} NvOSD_FrameSegmentMaskParams;
 
 /** Holds information about the lines in a frame. */
 typedef struct _NvOSD_FrameLineParams
@@ -173,6 +175,20 @@ void nvll_osd_set_clock_params(NvOSDCtxHandle nvosd_ctx, NvOSD_TextParams *clk_p
  * @returns 0 for success, or -1 for failure.
  */
 int nvll_osd_put_text(NvOSDCtxHandle nvosd_ctx, NvOSD_FrameTextParams *frame_text_params);
+
+/**
+ * \brief  Overlays segment masks at a given location in a buffer.
+ *
+ * You must ensure that the length of @a mask_params_list is at least
+ * @a num_segments.
+ *
+ * @param[in] nvosd_ctx A handle for an NvOSD context.
+ * @param[in] frame_mask_params A pointer to the FrameSegmentMaskParams struct
+ *            containing mask information to be overlayed.
+ *
+ * @returns 0 for success, -1 for failure.
+ */
+int nvll_osd_draw_segment_masks(NvOSDCtxHandle nvosd_ctx, NvOSD_FrameSegmentMaskParams *frame_mask_params);
 
 /**
  * \brief  Overlays boxes at a given location in a buffer.

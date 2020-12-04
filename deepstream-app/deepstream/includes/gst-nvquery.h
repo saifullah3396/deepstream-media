@@ -28,7 +28,7 @@ extern "C" {
 /**
  * @defgroup gst_query_plugin Query Functions
  * Gets information such as the batch size and the number of streams.
- * @ingroup gstreamer_utilities_group
+ * @ingroup gst_mess_evnt_qry
  * @{
  */
 

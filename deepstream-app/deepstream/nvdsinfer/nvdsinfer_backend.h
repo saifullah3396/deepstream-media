@@ -284,9 +284,7 @@ class FullDimTrtBackendContext : public TrtBackendContext
 public:
     FullDimTrtBackendContext(
         UniquePtrWDestroy<nvinfer1::IExecutionContext>&& ctx,
-        std::shared_ptr<TrtEngine> engine,
-        int profile = 0,
-        bool supportsDynamicInputSize = false);
+        std::shared_ptr<TrtEngine> engine, int profile = 0);
 
 private:
     NvDsInferStatus initialize() override;
@@ -298,7 +296,6 @@ private:
 protected:
     // Only idx 0 profile supported.
     const int m_ProfileIndex = 0;
-    const bool m_SupportsDynamicInputSize = false;
 };
 
 /**
@@ -342,8 +339,7 @@ private:
  * DlaTrtBackendContext - created when TRT CudaEngine is built for DLA
  */
 std::unique_ptr<TrtBackendContext> createBackendContext(
-    const std::shared_ptr<TrtEngine>& engine,
-    bool supportsDynamicInputSize = false);
+    const std::shared_ptr<TrtEngine>& engine);
 
 } // end of namespace nvdsinfer
 

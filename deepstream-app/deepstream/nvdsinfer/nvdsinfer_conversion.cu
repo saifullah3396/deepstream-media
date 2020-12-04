@@ -150,6 +150,45 @@ NvDsInferConvert_C1ToP1FloatKernelWithMeanSubtraction(
     }
 }
 
+__global__ void
+NvDsInferConvert_FtFTensorKernel(
+        float *outBuffer,
+        float *inBuffer,
+        unsigned int width,
+        unsigned int height,
+        unsigned int pitch,
+        float scaleFactor)
+{
+    unsigned int row = blockIdx.y * blockDim.y + threadIdx.y;
+    unsigned int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (col < width && row < height)
+    {
+        outBuffer[row * width + col] = scaleFactor * inBuffer[row * width + col];
+    }
+}
+
+__global__ void
+NvDsInferConvert_FtFTensorKernelWithMeanSubtraction(
+        float *outBuffer,
+        float *inBuffer,
+        unsigned int width,
+        unsigned int height,
+        unsigned int pitch,
+        float scaleFactor,
+        float *meanDataBuffer)
+{
+    unsigned int row = blockIdx.y * blockDim.y + threadIdx.y;
+    unsigned int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (col < width && row < height)
+    {
+        outBuffer[row * width + col] =
+            scaleFactor * ((float) inBuffer[row * width + col] -
+            meanDataBuffer[(row * width) + col]);
+    }
+}
+
 void
 NvDsInferConvert_C3ToP3Float(
     float *outBuffer,
@@ -279,4 +318,31 @@ NvDsInferConvert_C1ToP1Float(
             (outBuffer, inBuffer, width, height, pitch, scaleFactor, meanDataBuffer);
     }
 
+}
+
+//TODO add channel information, current implementation is only for single channel
+void
+NvDsInferConvert_FtFTensor(
+        float *outBuffer,
+        float *inBuffer,
+        unsigned int width,
+        unsigned int height,
+        unsigned int pitch,
+        float scaleFactor,
+        float *meanDataBuffer,
+        cudaStream_t stream)
+{
+    dim3 threadsPerBlock(THREADS_PER_BLOCK, THREADS_PER_BLOCK);
+    dim3 blocks((width+THREADS_PER_BLOCK_1)/threadsPerBlock.x, (height+THREADS_PER_BLOCK_1)/threadsPerBlock.y);
+
+    if (meanDataBuffer == NULL)
+    {
+        NvDsInferConvert_FtFTensorKernel <<<blocks, threadsPerBlock, 0, stream>>>
+            (outBuffer, inBuffer, width, height, pitch, scaleFactor);
+    }
+    else
+    {
+        NvDsInferConvert_FtFTensorKernelWithMeanSubtraction <<<blocks, threadsPerBlock, 0, stream>>>
+            (outBuffer, inBuffer, width, height, pitch, scaleFactor, meanDataBuffer);
+    }
 }

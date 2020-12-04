@@ -169,6 +169,17 @@ NvDsInferConvert_C1ToP1Float(
         float *meanDataBuffer,
         cudaStream_t stream);
 
+void
+NvDsInferConvert_FtFTensor(
+        float *outBuffer,
+        float *inBuffer,
+        unsigned int width,
+        unsigned int height,
+        unsigned int pitch,
+        float scaleFactor,
+        float *meanDataBuffer,
+        cudaStream_t stream);
+
 
 /**
  * Function pointer type to which any of the NvDsInferConvert functions can be
@@ -177,6 +188,16 @@ NvDsInferConvert_C1ToP1Float(
 typedef void (* NvDsInferConvertFcn)(
         float *outBuffer,
         unsigned char *inBuffer,
+        unsigned int width,
+        unsigned int height,
+        unsigned int pitch,
+        float scaleFactor,
+        float *meanDataBuffer,
+        cudaStream_t stream);
+
+typedef void (* NvDsInferConvertFcnFloat)(
+        float *outBuffer,
+        float *inBuffer,
         unsigned int width,
         unsigned int height,
         unsigned int pitch,

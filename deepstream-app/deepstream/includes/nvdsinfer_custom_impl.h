@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2017-2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
@@ -11,7 +11,7 @@
 
 /**
  * @file nvdsinfer_custom_impl.h
- * <b>NVIDIA DeepStream Specification for Custom Method Implementations for custom models </b>
+ * <b>Defines specification for Custom Method Implementations for custom models </b>
  *
  * @b Description: This file defines the API that
  * implements custom methods required by the GStreamer Gst-nvinfer plugin to
@@ -237,6 +237,35 @@ typedef bool (* NvDsInferParseCustomFunc) (
            NvDsInferNetworkInfo  const &networkInfo, \
            NvDsInferParseDetectionParams const &detectionParams, \
            std::vector<NvDsInferObjectDetectionInfo> &objectList);
+
+/**
+ * Type definition for the custom bounding box and instance mask parsing function.
+ *
+ * @param[in]  outputLayersInfo A vector containing information on the output
+ *                              layers of the model.
+ * @param[in]  networkInfo      Network information.
+ * @param[in]  detectionParams  Detection parameters required for parsing
+ *                              objects.
+ * @param[out] objectList       A reference to a vector in which the function
+ *                              is to add parsed objects and instance mask.
+ */
+typedef bool (* NvDsInferInstanceMaskParseCustomFunc) (
+        std::vector<NvDsInferLayerInfo> const &outputLayersInfo,
+        NvDsInferNetworkInfo  const &networkInfo,
+        NvDsInferParseDetectionParams const &detectionParams,
+        std::vector<NvDsInferInstanceMaskInfo> &objectList);
+
+/**
+ * Validates a custom parser function definition. Must be called
+ * after defining the function.
+ */
+#define CHECK_CUSTOM_INSTANCE_MASK_PARSE_FUNC_PROTOTYPE(customParseFunc) \
+    static void checkFunc_ ## customParseFunc (NvDsInferInstanceMaskParseCustomFunc func = customParseFunc) \
+        { checkFunc_ ## customParseFunc (); }; \
+    extern "C" bool customParseFunc (std::vector<NvDsInferLayerInfo> const &outputLayersInfo, \
+           NvDsInferNetworkInfo  const &networkInfo, \
+           NvDsInferParseDetectionParams const &detectionParams, \
+           std::vector<NvDsInferInstanceMaskInfo> &objectList);
 
 /**
  * Type definition for the custom classifier output parsing function.

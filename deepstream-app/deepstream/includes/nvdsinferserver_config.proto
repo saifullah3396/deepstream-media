@@ -183,8 +183,11 @@ message TrtIsClassifyParams
   uint32 topk = 1;
   /** classifciation threshold */
   float threshold = 2;
+  /** [optional] specify which output tensor is used for triton classification.*/
+  string tensor_name = 3;
 }
 
+/** Post-processing settings */
 message PostProcessParams {
   /** label file path. It relative to config file path if value is not
    * absoluate path
@@ -207,6 +210,7 @@ message PostProcessParams {
   }
 }
 
+/** Network Input layer information */
 message InputLayer {
   /** input tensor name, optional*/
   string name = 1;
@@ -216,6 +220,7 @@ message InputLayer {
   TensorDataType data_type = 3;
 }
 
+/** Network Onput layer information */
 message OutputLayer {
   /** output tensor name */
   string name = 1;
@@ -260,6 +265,32 @@ message TrtISParams {
   }
 }
 
+/** Network LSTM Parameters */
+message LstmParams {
+  /** init constant value for lstm input tensors, usually zero or one */
+  message InitConst {
+    /** const value */
+    float value = 1;
+  }
+  /** LSTM loop information */
+  message LstmLoop {
+    /** input tensor name */
+    string input = 1;
+    /** output tensor name */
+    string output = 2;
+    /** initialize input tensor for first frame */
+    oneof init_state {
+      /** init const value, default is zero */
+      InitConst init_const = 3;
+    }
+    /** enable if need keep lstm output tensor data for application output
+     * parsing, it's disabled by default */
+    bool keep_output = 4;
+  }
+  repeated LstmLoop loops = 1;
+}
+
+/** Network backend Settings */
 message BackendParams {
   /** input tensors settings, optional */
   repeated InputLayer inputs = 1;
@@ -307,6 +338,12 @@ message InferenceConfig {
   {
     /** extrac controls */
     ExtraControl extra = 8;
+  }
+
+  /** LSTM controller */
+  oneof lstm_control {
+    /** LSTM parameters */
+    LstmParams lstm = 9;
   }
 }
 

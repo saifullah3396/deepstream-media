@@ -195,8 +195,8 @@ UffModelParser::UffModelParser(const NvDsInferContextInitParams& initParams,
     }
 
     m_ModelParams.inputNames.emplace_back(initParams.uffInputBlobName);
-    nvinfer1::Dims3 uffInputDims(initParams.uffDimsCHW.c,
-        initParams.uffDimsCHW.h, initParams.uffDimsCHW.w);
+    nvinfer1::Dims3 uffInputDims(initParams.inferInputDims.c,
+        initParams.inferInputDims.h, initParams.inferInputDims.w);
     m_ModelParams.inputDims.emplace_back(uffInputDims);
 
     if (m_ModelParams.inputDims.size() != m_ModelParams.inputNames.size())
@@ -941,9 +941,77 @@ TrtModelBuilder::buildNetwork(const NvDsInferContextInitParams& initParams)
         return NVDSINFER_CONFIG_FAILED;
     }
 
+    for(unsigned int i = 0; i < initParams.numOutputIOFormats; ++i)
+    {
+        assert(initParams.outputIOFormats[i]);
+        std::string outputIOFormat(initParams.outputIOFormats[i]);
+        size_t pos1 = outputIOFormat.find(":");
+        if(pos1 == std::string::npos)
+        {
+            dsInferError("failed to parse outputIOFormart %s."
+            "Expected layerName:type:fmt", initParams.outputIOFormats[i]);
+            return NVDSINFER_CONFIG_FAILED;
+        }
+        size_t pos2 = outputIOFormat.find(":", pos1+1);
+        if(pos2 == std::string::npos)
+        {
+            dsInferError("failed to parse outputIOFormart %s."
+            "Expected layerName:type:fmt", initParams.outputIOFormats[i]);
+            return NVDSINFER_CONFIG_FAILED;
+        }
+        std::string layerName = outputIOFormat.substr(0,pos1);
+        std::string dataType = outputIOFormat.substr(pos1+1,pos2-pos1-1);
+        if(!isValidOutputDataType(dataType))
+        {
+            dsInferError("Invalid data output datatype specified %s",
+            dataType.c_str());
+            return NVDSINFER_CONFIG_FAILED;
+        }
+        std::string format = outputIOFormat.substr(pos2+1);
+        if(!isValidOutputFormat(format))
+        {
+            dsInferError("Invalid output data format specified %s",
+            format.c_str());
+            return NVDSINFER_CONFIG_FAILED;
+        }
+    }
+    for(unsigned int i = 0; i < initParams.numLayerDevicePrecisions; ++i)
+    {
+      assert(initParams.layerDevicePrecisions[i]);
+      std::string outputDevicePrecision(initParams.layerDevicePrecisions[i]);
+      size_t pos1 = outputDevicePrecision.find(":");
+      if(pos1 == std::string::npos)
+      {
+        dsInferError("failed to parse outputDevicePrecision %s."
+          "Expected layerName:precisionType:deviceType", initParams.layerDevicePrecisions[i]);
+        return NVDSINFER_CONFIG_FAILED;
+      }
+      size_t pos2 = outputDevicePrecision.find(":", pos1+1);
+      if(pos2 == std::string::npos)
+      {
+        dsInferError("failed to parse outputDevicePrecision %s."
+          "Expected layerName:precisionType:deviceType", initParams.layerDevicePrecisions[i]);
+        return NVDSINFER_CONFIG_FAILED;
+      }
+      std::string layerName = outputDevicePrecision.substr(0,pos1);
+      std::string precisionType = outputDevicePrecision.substr(pos1+1,pos2-pos1-1);
+      if(!isValidPrecisionType(precisionType))
+      {
+        dsInferError("Invalid output precisionType specified %s",
+          precisionType.c_str());
+        return NVDSINFER_CONFIG_FAILED;
+      }
+      std::string deviceType = outputDevicePrecision.substr(pos2+1);
+      if(!isValidDeviceType(deviceType))
+      {
+        dsInferError("Invalid deviceType specified %s",
+          deviceType.c_str());
+        return NVDSINFER_CONFIG_FAILED;
+      }
+    }
+
     std::unique_ptr<BuildParams> buildOptions;
     nvinfer1::NetworkDefinitionCreationFlags netDefFlags = 0;
-
     /* Create build parameters to build the network as a full dimension network
      * only if the parser supports it and DLA is not to be used. Otherwise build
      * the network as an implicit batch dim network. */
@@ -985,12 +1053,7 @@ TrtModelBuilder::createImplicitParams(const NvDsInferContextInitParams& initPara
 {
     auto params = std::make_unique<ImplicitBuildParams>();
 
-    if (initParams.uffDimsCHW.c && initParams.uffDimsCHW.h && 
-           initParams.uffDimsCHW.w)
-    {
-        params->inputDims.emplace_back(ds2TrtDims(initParams.uffDimsCHW));
-    }
-    else if (initParams.inferInputDims.c && initParams.inferInputDims.h &&
+    if (initParams.inferInputDims.c && initParams.inferInputDims.h &&
             initParams.inferInputDims.w)
     {
         params->inputDims.emplace_back(ds2TrtDims(initParams.inferInputDims));
@@ -999,11 +1062,6 @@ TrtModelBuilder::createImplicitParams(const NvDsInferContextInitParams& initPara
     params->maxBatchSize = initParams.maxBatchSize;
     initCommonParams(*params, initParams);
 
-    for (size_t i = 0; i < params->inputDims.size(); ++i)
-    {
-        params->inputFormats.emplace_back(BuildParams::TensorIOFormat(
-            kDefaultTensorDataType, kDefaultTensorFormats));
-    }
     return params;
 }
 
@@ -1054,6 +1112,38 @@ TrtModelBuilder::initCommonParams(BuildParams& params,
         params.dlaCore = initParams.dlaCore;
     else
         params.dlaCore = -1;
+
+    for(unsigned int i=0; i < initParams.numOutputIOFormats; ++i)
+    {
+        assert(initParams.outputIOFormats[i]);
+        std::string outputIOFormat(initParams.outputIOFormats[i]);
+        size_t pos1 = outputIOFormat.find(":");
+        size_t pos2 = outputIOFormat.find(":", pos1+1);
+        std::string layerName = outputIOFormat.substr(0,pos1);
+        std::string dataType = outputIOFormat.substr(pos1+1,pos2-pos1-1);
+        std::string format = outputIOFormat.substr(pos2+1);
+        BuildParams::TensorIOFormat fmt =
+        std::make_tuple(str2DataType(dataType),str2TensorFormat(format));
+        std::pair<std::string, BuildParams::TensorIOFormat>
+            outputFmt{layerName, fmt};
+        params.outputFormats.insert(outputFmt);
+    }
+
+    for(unsigned int i=0; i < initParams.numLayerDevicePrecisions; ++i)
+    {
+      assert(initParams.layerDevicePrecisions[i]);
+      std::string outputDevicePrecision(initParams.layerDevicePrecisions[i]);
+      size_t pos1 = outputDevicePrecision.find(":");
+      size_t pos2 = outputDevicePrecision.find(":", pos1+1);
+      std::string layerName = outputDevicePrecision.substr(0, pos1);
+      std::string precisionType = outputDevicePrecision.substr(pos1+1, pos2-pos1-1);
+      std::string deviceType = outputDevicePrecision.substr(pos2+1);
+      BuildParams::LayerDevicePrecision fmt =
+      std::make_tuple(str2PrecisionType(precisionType),str2DeviceType(deviceType));
+      std::pair<std::string, BuildParams::LayerDevicePrecision>
+        outputFmt{layerName, fmt};
+      params.layerDevicePrecisions.insert(outputFmt);
+    }
 }
 
 std::unique_ptr<TrtEngine>
@@ -1110,25 +1200,49 @@ TrtModelBuilder::configCommonOptions(BuildParams& params)
     int inputLayerNum = network.getNbInputs();
     int outputLayerNum = network.getNbOutputs();
 
-    /* Set the data type and tensor formats for all bound input/output layets. */
+    if(!validateIOTensorNames(params, network))
+    {
+        dsInferError("Invalid layer name specified for TensorIOFormats");
+        return NVDSINFER_CONFIG_FAILED;
+    }
+
+    /* Set default datatype and tensor formats for input layers */
     for (int iL = 0; iL < inputLayerNum; iL++)
     {
         nvinfer1::ITensor* input = network.getInput(iL);
-        if ((int)params.inputFormats.size() > iL)
-        {
-            input->setType(std::get<0>(params.inputFormats[iL]));
-            input->setAllowedFormats(std::get<1>(params.inputFormats[iL]));
-        }
+        input->setType(kDefaultTensorDataType);
+        input->setAllowedFormats(kDefaultTensorFormats);
     }
 
+    /* Set user defined data type and tensor formats for all bound output layers. */
     for (int oL = 0; oL < outputLayerNum; oL++)
     {
         nvinfer1::ITensor* output = network.getOutput(oL);
-        if ((int)params.outputFormats.size() > oL)
+        if(params.outputFormats.find(output->getName())
+            != params.outputFormats.end())
+            {
+                auto curFmt = params.outputFormats.at(output->getName());
+                output->setType(std::get<0>(curFmt));
+                output->setAllowedFormats(std::get<1>(curFmt));
+            }
+    }
+
+    if(!params.layerDevicePrecisions.empty())
+    {
+      builderConfig.setFlag(nvinfer1::BuilderFlag::kSTRICT_TYPES);
+
+      for(int idx = 0; idx < network.getNbLayers(); ++idx)
+      {
+        nvinfer1::ILayer* layer = network.getLayer(idx);
+
+        if(params.layerDevicePrecisions.find(layer->getName())
+          != params.layerDevicePrecisions.end())
         {
-            output->setType(std::get<0>(params.outputFormats[oL]));
-            output->setAllowedFormats(std::get<1>(params.outputFormats[oL]));
+          auto curType = params.layerDevicePrecisions.at(layer->getName());
+          builderConfig.setDeviceType(layer, std::get<1>(curType));
+          layer->setPrecision(std::get<0>(curType));
         }
+      }
     }
 
     /* Set workspace size. */
@@ -1193,6 +1307,7 @@ TrtModelBuilder::configCommonOptions(BuildParams& params)
         if (params.networkMode != NvDsInferNetworkMode_INT8)
         {
             // DLA supports only INT8 or FP16
+            dsInferWarning("DLA does not support FP32 precision type, using FP16 mode.");
             builderConfig.setFlag(nvinfer1::BuilderFlag::kFP16);
         }
     }

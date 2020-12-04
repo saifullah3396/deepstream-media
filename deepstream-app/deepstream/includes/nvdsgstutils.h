@@ -10,13 +10,20 @@
 
 /**
  * @file
- * <b>NVIDIA DeepStream GStreamer Utilities</b>
+ * <b>Defines NVIDIA DeepStream GStreamer Utilities</b>
  *
  * @b Description: This file specifies the NVIDIA DeepStream GStreamer utility
  * functions.
  *
  */
-
+/**
+ * @defgroup  gstreamer_utils  Utilities: Gstreamer utilities API
+ *
+ * Specifies GStreamer utilities functions, used to configure the source to generate NTP Sync values.
+ *
+ * @ingroup NvDsUtilsApi
+ * @{
+ */
 #ifndef __NVDS_GSTUTILS_H__
 #define __NVDS_GSTUTILS_H__
 
@@ -48,3 +55,5 @@ void configure_source_for_ntp_sync (GstElement *src_elem);
 #endif
 
 #endif
+
+/** @} */

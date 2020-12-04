@@ -21,7 +21,9 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
+#include <NvInfer.h>
 #include <NvInferRuntime.h>
 #include <nvdsinfer.h>
 #include <nvdsinfer_context.h>
@@ -286,6 +288,21 @@ bool operator<=(const NvDsInferDims& a, const NvDsInferDims& b);
 bool operator>(const NvDsInferDims& a, const NvDsInferDims& b);
 bool operator==(const NvDsInferDims& a, const NvDsInferDims& b);
 bool operator!=(const NvDsInferDims& a, const NvDsInferDims& b);
+
+
+bool isValidOutputFormat(const std::string& fmt);
+bool isValidOutputDataType(const std::string& dataType);
+nvinfer1::DataType str2DataType(const std::string& dataType);
+uint32_t str2TensorFormat(const std::string& fmt);
+
+struct BuildParams;
+bool validateIOTensorNames(const BuildParams& params,
+                           const  nvinfer1::INetworkDefinition& network);
+
+bool isValidDeviceType(const std::string& fmt);
+bool isValidPrecisionType(const std::string& dataType);
+nvinfer1::DataType str2PrecisionType(const std::string& dataType);
+nvinfer1::DeviceType str2DeviceType(const std::string& deviceType);
 
 } // namespace nvdsinfer
 

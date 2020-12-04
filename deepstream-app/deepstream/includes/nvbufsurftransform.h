@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2019, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
@@ -20,22 +20,20 @@
  */
 #ifndef NVBUFSURFTRANSFORM_H_
 #define NVBUFSURFTRANSFORM_H_
-#include <stdio.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include <npp.h>
 #include "nvbufsurface.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** @name NvBufSurfTransform types and functions.
- * This section describes types and functions of the \ref NvBufSurfTransform
+/** @defgroup ds_bbb NvBufSurfTransform Types and Functions
+ * Defines types and functions of the \ref NvBufSurfTransform
  * application programming interface.
- */
+ * @ingroup ds_nvbuf_api
+ * @{ */
 
-/** @{ */
 /**
  * Specifies compute devices used by \ref NvBufSurfTransform.
  */
@@ -277,7 +275,7 @@ NvBufSurfTransform_Error NvBufSurfTransform (NvBufSurface *src, NvBufSurface *ds
  */
 NvBufSurfTransform_Error NvBufSurfTransformComposite (NvBufSurface *src,
     NvBufSurface *dst, NvBufSurfTransformCompositeParams *composite_params);
-
+/** @} */
 #ifdef __cplusplus
 }
 #endif

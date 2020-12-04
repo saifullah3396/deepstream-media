@@ -21,7 +21,7 @@
  * @defgroup gstreamer_metagroup_api DeepStream Metadata Extension
  *
  * Defines an API for managing GStreamer DeepStream metadata.
- * @ingroup gstreamer_metadata_group
+ * @ingroup custom_gstreamer
  * @{
  *
  * DeepStream Metadata is attached to a buffer with gst_buffer_add_nvds_meta().

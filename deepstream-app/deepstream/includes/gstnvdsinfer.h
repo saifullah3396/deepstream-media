@@ -19,7 +19,7 @@
 /**
  * @defgroup   gstreamer_nvinfer_api  NvInfer Plugin
  * Defines an API for the GStreamer NvInfer plugin.
- * @ingroup NvDsInferApi
+ * @ingroup custom_gstreamer
  * @{
  */
 

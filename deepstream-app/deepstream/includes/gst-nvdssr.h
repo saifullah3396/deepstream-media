@@ -8,12 +8,31 @@
  * license agreement from NVIDIA Corporation is strictly prohibited.
  *
  */
+/**
+ * @file
+ * <b>NVIDIA DeepStream: Smart recording API</b>
+ */
+/**
+ * @defgroup  custom_gstreamer  Custom Gstreamer APIs
+ *
+ * This section defines custom Gstreamer APIs
+ *
+ */
 
 #ifndef NVDSSR_H_
 #define NVDSSR_H_
 
 #include <gst/gst.h>
 
+/**
+ *
+ * @defgroup  gstreamer_nvdssr  Smart Record
+ *
+ * Specifies APIs relating to smart recording.
+ *
+ * @ingroup custom_gstreamer
+ * @{
+ */
 #ifdef __cplusplus
 extern "C"
 {
@@ -52,10 +71,10 @@ typedef enum {
  */
 typedef struct NvDsSRInitParams
 {
-  /** recording video container, MP4 / MKV */
-  NvDsSRContainerType containerType;
   /** callback function gets called once recording is complete */
   NvDsSRCallbackFunc callback;
+  /** recording video container, MP4 / MKV */
+  NvDsSRContainerType containerType;
   /** optional, recording video width, 0 means no transcode */
   guint width;
   /** optional, recording video height, 0 means no transcode */
@@ -99,6 +118,8 @@ typedef struct NvDsSRContext
   GThread *resetThread;
   /** pointer to user provided data */
   gpointer uData;
+  /** pointer to private data */
+  gpointer privData;
 } NvDsSRContext;
 
 /**
@@ -114,8 +135,8 @@ typedef struct NvDsSRRecordingInfo
   gchar *filename;
   /** recorded file dir path */
   gchar *dirpath;
-  /** duration in seconds */
-  guint duration;
+  /** duration in milliseconds */
+  guint64 duration;
   /** recorded video container, MP4 / MKV */
   NvDsSRContainerType containerType;
   /** recorded video width*/
@@ -193,3 +214,5 @@ NvDsSRStatus NvDsSRDestroy (NvDsSRContext *ctx);
 }
 #endif
 #endif /* NVDSSR_H_ */
+
+/** @} */

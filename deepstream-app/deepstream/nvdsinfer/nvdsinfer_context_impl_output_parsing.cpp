@@ -188,6 +188,22 @@ void DetectPostprocessor::preClusteringThreshold(
                         ? true : false;}),objectList.end());
 }
 
+/**
+ * Filter out the top k objects with the highest probability and ignore the
+ * rest
+ */
+void DetectPostprocessor::filterTopKOutputs(const int topK,
+                          std::vector<NvDsInferObjectDetectionInfo> &objectList)
+{
+    if(topK < 0)
+        return;
+
+    std::stable_sort(objectList.begin(), objectList.end(),
+                    [](const NvDsInferObjectDetectionInfo& obj1, const NvDsInferObjectDetectionInfo& obj2) {
+                        return obj1.detectionConfidence > obj2.detectionConfidence; });
+    objectList.resize(static_cast<size_t>(topK) <= objectList.size() ? topK : objectList.size());
+}
+
 std::vector<int>
 DetectPostprocessor::nonMaximumSuppression(std::vector<std::pair<float, int>>& scoreIndex,
                                            std::vector<NvDsInferParseObjectInfo>& bbox,
@@ -249,7 +265,6 @@ DetectPostprocessor::clusterAndFillDetectionOutputNMS(NvDsInferDetectionOutput &
                     const std::vector<NvDsInferObjectDetectionInfo>& c2) -> bool
                     { return c1.size() < c2.size(); };
 
-    size_t totalObjects = 0;
     std::vector<std::pair<float, int>> scoreIndex;
     std::vector<NvDsInferObjectDetectionInfo> clusteredBboxes;
     auto maxElement = *std::max_element(m_PerClassObjectList.begin(),
@@ -274,18 +289,20 @@ DetectPostprocessor::clusterAndFillDetectionOutputNMS(NvDsInferDetectionOutput &
             const std::vector<int> indices = nonMaximumSuppression(scoreIndex, m_PerClassObjectList[c],
                             m_PerClassDetectionParams[c].nmsIOUThreshold);
 
+            std::vector<NvDsInferObjectDetectionInfo> postNMSBboxes;
             for(auto idx : indices) {
                 if(m_PerClassObjectList[c][idx].detectionConfidence >
                 m_PerClassDetectionParams[c].postClusterThreshold)
                 {
-                    clusteredBboxes.emplace_back(m_PerClassObjectList[c][idx]);
-                    ++totalObjects;
+                    postNMSBboxes.emplace_back(m_PerClassObjectList[c][idx]);
                 }
             }
+            filterTopKOutputs(m_PerClassDetectionParams.at(c).topK, postNMSBboxes);
+            clusteredBboxes.insert(clusteredBboxes.end(),postNMSBboxes.begin(), postNMSBboxes.end());
         }
     }
 
-    output.objects = new NvDsInferObject[totalObjects];
+    output.objects = new NvDsInferObject[clusteredBboxes.size()];
     output.numObjects = 0;
 
     for(uint i=0; i < clusteredBboxes.size(); ++i)
@@ -297,6 +314,7 @@ DetectPostprocessor::clusterAndFillDetectionOutputNMS(NvDsInferDetectionOutput &
         object.height = clusteredBboxes[i].height;
         object.classIndex = clusteredBboxes[i].classId;
         object.label = nullptr;
+        object.mask = nullptr;
         if (object.classIndex < static_cast<int>(m_Labels.size()) && m_Labels[object.classIndex].size() > 0)
                 object.label = strdup(m_Labels[object.classIndex][0].c_str());
         object.confidence = clusteredBboxes[i].detectionConfidence;
@@ -351,6 +369,7 @@ DetectPostprocessor::clusterAndFillDetectionOutputCV(NvDsInferDetectionOutput& o
             object.height = rect.height;
             object.classIndex = c;
             object.label = nullptr;
+            object.mask = nullptr;
             if (c < m_Labels.size() && m_Labels[c].size() > 0)
                 object.label = strdup(m_Labels[c][0].c_str());
             object.confidence = -0.1;
@@ -389,12 +408,13 @@ DetectPostprocessor::clusterAndFillDetectionOutputDBSCAN(NvDsInferDetectionOutpu
                 m_DBScanHandle.get(), &clusteringParams, objArray, &numObjects);
         }
         m_PerClassObjectList[c].resize(numObjects);
-        m_PerClassObjectList[c].erase(std::remove_if(m_PerClassObjectList[c].begin(),
+        m_PerClassObjectList[c].erase(std::remove_if(m_PerClassObjectList[c].begin(), 
                m_PerClassObjectList[c].end(),
                [detectionParams](const NvDsInferObjectDetectionInfo& obj)
                { return (obj.detectionConfidence <
                         detectionParams.postClusterThreshold)
                         ? true : false;}),m_PerClassObjectList[c].end());
+        filterTopKOutputs(m_PerClassDetectionParams.at(c).topK, m_PerClassObjectList.at(c));
         totalObjects += m_PerClassObjectList[c].size();
     }
 
@@ -414,6 +434,7 @@ DetectPostprocessor::clusterAndFillDetectionOutputDBSCAN(NvDsInferDetectionOutpu
             object.height = m_PerClassObjectList[c][i].height;
             object.classIndex = c;
             object.label = nullptr;
+            object.mask = nullptr;
             if (c < m_Labels.size() && m_Labels[c].size() > 0)
                 object.label = strdup(m_Labels[c][0].c_str());
             object.confidence = m_PerClassObjectList[c][i].detectionConfidence;
@@ -463,22 +484,119 @@ DetectPostprocessor::clusterAndFillDetectionOutputHybrid(NvDsInferDetectionOutpu
 void
 DetectPostprocessor::fillUnclusteredOutput(NvDsInferDetectionOutput& output)
 {
-    output.objects = new NvDsInferObject[m_ObjectList.size()];
-    output.numObjects = 0;
-    for(const auto& obj : m_ObjectList)
+    for (auto & object:m_ObjectList)
     {
-        NvDsInferObject &object = output.objects[output.numObjects];
-        object.left = obj.left;
-        object.top = obj.top;
-        object.width = obj.width;
-        object.height = obj.height;
-        object.classIndex = obj.classId;
-        object.label = nullptr;
-        if(obj.classId < m_Labels.size() && m_Labels[obj.classId].size() > 0)
-            object.label = strdup(m_Labels[obj.classId][0].c_str());
-        object.confidence = obj.detectionConfidence;
-        ++output.numObjects;
+        m_PerClassObjectList[object.classId].emplace_back(object);
     }
+
+    unsigned int totalObjects = 0;
+    for (unsigned int c = 0; c < m_NumDetectedClasses; c++)
+    {
+        filterTopKOutputs(m_PerClassDetectionParams.at(c).topK, m_PerClassObjectList.at(c));
+        totalObjects += m_PerClassObjectList.at(c).size();
+    }
+
+    output.objects = new NvDsInferObject[totalObjects];
+    output.numObjects = 0;
+    for(const auto& perClassList : m_PerClassObjectList)
+    {
+        for(const auto& obj: perClassList)
+        {
+            NvDsInferObject &object = output.objects[output.numObjects];
+            object.left = obj.left;
+            object.top = obj.top;
+            object.width = obj.width;
+            object.height = obj.height;
+            object.classIndex = obj.classId;
+            object.label = nullptr;
+            object.mask = nullptr;
+            if(obj.classId < m_Labels.size() && m_Labels[obj.classId].size() > 0)
+                object.label = strdup(m_Labels[obj.classId][0].c_str());
+            object.confidence = obj.detectionConfidence;
+
+            ++output.numObjects;
+        }
+    }
+}
+
+/**
+ * full the output structure without performing any clustering operations
+ */
+
+void
+InstanceSegmentPostprocessor::fillUnclusteredOutput(NvDsInferDetectionOutput& output)
+{
+    for (auto & object:m_InstanceMaskList)
+    {
+        m_PerClassInstanceMaskList[object.classId].emplace_back(object);
+    }
+
+    unsigned int totalObjects = 0;
+    for (unsigned int c = 0; c < m_NumDetectedClasses; c++)
+    {
+        filterTopKOutputs(m_PerClassDetectionParams.at(c).topK, m_PerClassInstanceMaskList.at(c));
+        totalObjects += m_PerClassInstanceMaskList.at(c).size();
+    }
+
+    output.objects = new NvDsInferObject[totalObjects];
+    output.numObjects = 0;
+    for(const auto& perClassList : m_PerClassInstanceMaskList)
+    {
+        for(const auto& obj: perClassList)
+        {
+            NvDsInferObject &object = output.objects[output.numObjects];
+            object.left = obj.left;
+            object.top = obj.top;
+            object.width = obj.width;
+            object.height = obj.height;
+            object.classIndex = obj.classId;
+            object.label = nullptr;
+            if(obj.classId < m_Labels.size() && m_Labels[obj.classId].size() > 0)
+                object.label = strdup(m_Labels[obj.classId][0].c_str());
+            object.confidence = obj.detectionConfidence;
+
+            object.mask = nullptr;
+            if (obj.mask) {
+                object.mask = std::move(obj.mask);
+                object.mask_width = obj.mask_width;
+                object.mask_height = obj.mask_height;
+                object.mask_size = obj.mask_size;
+            }
+            ++output.numObjects;
+        }
+    }
+}
+
+/**
+ * Filter out objects which have been specificed to be removed from the metadata
+ * prior to clustering operation
+ */
+void InstanceSegmentPostprocessor::preClusteringThreshold(
+                           NvDsInferParseDetectionParams const &detectionParams,
+                           std::vector<NvDsInferInstanceMaskInfo> &objectList)
+{
+    objectList.erase(std::remove_if(objectList.begin(), objectList.end(),
+               [detectionParams](const NvDsInferInstanceMaskInfo& obj)
+               { return (obj.classId >= detectionParams.numClassesConfigured) ||
+                        (obj.detectionConfidence <
+                        detectionParams.perClassPreclusterThreshold[obj.classId])
+                        ? true : false;}),objectList.end());
+}
+
+/**
+ * Filter out the top k objects with the highest probability and ignore the
+ * rest
+ */
+void InstanceSegmentPostprocessor::filterTopKOutputs(const int topK,
+                          std::vector<NvDsInferInstanceMaskInfo> &objectList)
+{
+    if(topK < 0)
+        return;
+
+    std::stable_sort(objectList.begin(), objectList.end(),
+                    [](const NvDsInferInstanceMaskInfo& obj1, const NvDsInferInstanceMaskInfo& obj2) {
+                        return obj1.detectionConfidence > obj2.detectionConfidence; });
+    objectList.resize(static_cast<size_t>(topK) <= objectList.size() ? topK : objectList.size());
 }
 
 bool
@@ -540,6 +658,49 @@ ClassifyPostprocessor::parseAttributesFromSoftmaxLayers(
     }
 
     return true;
+}
+
+NvDsInferStatus
+InstanceSegmentPostprocessor::fillDetectionOutput(
+    const std::vector<NvDsInferLayerInfo>& outputLayers,
+    NvDsInferDetectionOutput& output)
+{
+    /* Clear the object lists. */
+    m_InstanceMaskList.clear();
+
+    /* Clear all per class object lists */
+    for (auto & list:m_PerClassInstanceMaskList)
+        list.clear();
+
+    /* Call custom parsing function if specified otherwise use the one
+     * written along with this implementation. */
+    if (m_CustomParseFunc)
+    {
+        if (!m_CustomParseFunc(outputLayers, m_NetworkInfo,
+                    m_DetectionParams, m_InstanceMaskList))
+        {
+            printError("Failed to parse bboxes and instance mask using custom parse function");
+            return NVDSINFER_CUSTOM_LIB_FAILED;
+        }
+    }
+    else
+    {
+        printError("Failed to find custom parse function");
+        return NVDSINFER_OUTPUT_PARSING_FAILED;
+    }
+
+    preClusteringThreshold(m_DetectionParams, m_InstanceMaskList);
+
+    switch (m_ClusterMode)
+    {
+        case NVDSINFER_CLUSTER_NONE:
+            fillUnclusteredOutput(output);
+            break;
+        default:
+            printError("Invalid cluster mode for instance mask detection");
+            return NVDSINFER_OUTPUT_PARSING_FAILED;
+    }
+    return NVDSINFER_SUCCESS;
 }
 
 NvDsInferStatus
@@ -715,6 +876,15 @@ InferPostprocessor::releaseFrameOutput(NvDsInferFrameOutput& frameOutput)
             break;
         case NvDsInferNetworkType_Segmentation:
             delete[] frameOutput.segmentationOutput.class_map;
+            break;
+        case NvDsInferNetworkType_InstanceSegmentation:
+            for (unsigned int j = 0; j < frameOutput.detectionOutput.numObjects;
+                    j++)
+            {
+                free(frameOutput.detectionOutput.objects[j].label);
+                delete frameOutput.detectionOutput.objects[j].mask;
+            }
+            delete[] frameOutput.detectionOutput.objects;
             break;
         default:
             break;
