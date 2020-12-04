@@ -16,6 +16,7 @@ process-mode=2
 model-color-format=0
 ## 0=FP32, 1=INT8, 2=FP16 mode
 network-mode=2
+num-detected-classes=1
 network-type=1
 secondary-reinfer-interval=5
 #output-blob-names=global_average_pooling2d_1/Mean
