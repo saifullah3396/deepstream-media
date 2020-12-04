@@ -11,6 +11,8 @@ deepstream-app/deepstream-app
 *.png
 *.pyc
 *.pth
+*.onnx
+*.onnx.trt
 models/facedetectir/facedetectir_int8.txt
 models/facedetectir/labels_facedetectir.txt
 models/facedetectir/resnet18_facedetectir_pruned.etlt
@@ -182,3 +184,4 @@ models/craft/easyocr/dict/uz.txt
 models/craft/easyocr/dict/vi.txt
 models/craft/craft_mlt_25k.onnx
 models/craft/craft_mlt_25k.onnx.trt
+models/text_recognition/latin.onnx
