@@ -4,7 +4,15 @@ from collections import OrderedDict
 import os
 import torch
 import sys
-sys.path.append("..")
+
+
+if not os.environ['MEDIA_APP_ROOT']:
+    print(
+        "Please add the environment variable MEDIA_APP_ROOT as path to the "
+        "application root.")
+    exit(1)
+
+sys.path.append(os.environ['MEDIA_APP_ROOT'])
 
 
 def copyStateDict(state_dict):
@@ -50,23 +58,24 @@ def main():
 
     dynamic_axis = None
     model_name = './{}/{}.onnx'.format(weights_file_dir, weights_file)
-    if args.model == 'craft':
-        from models.craft import easyocr
-        model = easyocr.craft.CRAFT(y_permute=False)
+    if args.model == 'text_detection/craft':
+        from models.text_detection.craft.craft import CRAFT
+        model = CRAFT(y_permute=False)
         output_names = ['scores', 'features']
         dynamic_axis = {
             'input': {0: 'batch'},
         }
-    elif args.model == 'text_recognizer_latin':
-        from models.craft import easyocr
+    elif args.model == 'text_recognition/latin':
+        from models.text_recognition.model import Model
         N_LATIN_CHARS = 168
-        model = easyocr.model.Model(1, 512, 512, N_LATIN_CHARS)
+        model = Model(1, 512, 512, N_LATIN_CHARS)
         output_names = ['scores']
         # batch and width can be dynamic
         dynamic_axis = {
             'input': {0: 'batch'},
         }
-        model_name = './{}/{}-{}.onnx'.format(weights_file_dir, weights_file, input_shape[3])
+        model_name = './{}/{}-{}.onnx'.format(
+            weights_file_dir, weights_file, input_shape[3])
     else:
         print('{} model is not supported.'.format(args.model))
         exit(1)
