@@ -19,16 +19,19 @@
     "prettier.useTabs": false,
     "files.trimTrailingWhitespace": true,
     "editor.rulers": [80],
+    "editor.wordWrap": "wordWrapColumn",
+    "editor.wordWrapColumn": 80,
     "cmake.configureOnOpen": false,
     "diffEditor.ignoreTrimWhitespace": false,
     "[cpp]": {
-    "editor.defaultFormatter": "ms-vscode.cpptools"
+        "editor.defaultFormatter": "ms-vscode.cpptools"
     },
     "[python]": {
-    "editor.defaultFormatter": "ms-python.python"
+        "editor.defaultFormatter": "ms-python.python"
     },
     "cSpell.enabled": false,
     "prettier.tabWidth": 4,
+
     "files.associations": {
         "random": "cpp",
         "ostream": "cpp",
