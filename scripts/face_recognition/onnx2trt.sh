@@ -1,7 +1,6 @@
-DIR="$(dirname $1)"
-FILE="$(basename $1)"
-echo "$DIR"
-echo "$FILE"
+PATH_TO_FILE=../../models/face_recognition/face_recognition.pb.onnx
+DIR="$(dirname $PATH_TO_FILE)"
+FILE="$(basename $PATH_TO_FILE)"
 # in our case, craft takes input of Nx3x360x640
 $TENSOR_RT/bin/trtexec --fp16 --explicitBatch \
     --workspace=256 \
