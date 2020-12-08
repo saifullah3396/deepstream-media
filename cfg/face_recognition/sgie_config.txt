@@ -1,0 +1,34 @@
+# Copyright (c) 2020 NVIDIA Corporation.  All rights reserved.
+#
+# NVIDIA Corporation and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA Corporation is strictly prohibited.
+
+[property]
+gpu-id=0
+net-scale-factor=1.0
+model-engine-file=../../models/face_recognition/face_recognition.pb.onnx.trt
+input-blob-name=input_1
+batch-size=8
+model-color-format=0
+## 0=FP32, 1=INT8, 2=FP16 mode
+network-mode=2
+num-detected-classes=1
+network-type=1
+secondary-reinfer-interval=5
+#output-blob-names=global_average_pooling2d_1/Mean
+offsets=91.4953;103.8827;131.0912
+parse-classifier-func-name=NvDsInferFaceRecognitionParser
+custom-lib-path=../../src/nvdsinfer_parsers/face_recognition/libnvdsinfer_classifier.so
+# correlation threshold in our case
+classifier-threshold=0.5
+process-mode=2
+
+[class-attrs-all]
+pre-cluster-threshold=0.2
+group-threshold=1
+## Set eps=0.7 and minBoxes for cluster-mode=1(DBSCAN)
+eps=0.2
+#minBoxes=3
