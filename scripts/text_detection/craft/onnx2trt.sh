@@ -1,3 +1,6 @@
+SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+cd ${SCRIPTPATH}
+
 PATH_TO_FILE=../../../models/text_detection/craft/craft.onnx
 DIR="$(dirname $PATH_TO_FILE)"
 FILE="$(basename $PATH_TO_FILE)"
