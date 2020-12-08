@@ -12,7 +12,6 @@ net-scale-factor=1.0
 model-engine-file=../../models/facerecognition/face_recognition.pb.onnx.trt
 input-blob-name=input_1
 batch-size=4
-process-mode=2
 model-color-format=0
 ## 0=FP32, 1=INT8, 2=FP16 mode
 network-mode=2
