@@ -1,8 +1,7 @@
-DIR="$(dirname $1)"
-FILE="$(basename $1)"
-echo "$DIR"
-echo "$FILE"
-# in our case, craft takes input of Nx3x360x640
+PATH_TO_FILE=../../../models/text_detection/craft/craft.onnx
+DIR="$(dirname $PATH_TO_FILE)"
+FILE="$(basename $PATH_TO_FILE)"
+# in our case, text_detection model craft takes input of Nx3x360x640
 $TENSOR_RT/bin/trtexec --fp16 --explicitBatch \
     --workspace=256 \
     --onnx="${DIR}/${FILE}" --saveEngine="${DIR}/${FILE}.trt" \
