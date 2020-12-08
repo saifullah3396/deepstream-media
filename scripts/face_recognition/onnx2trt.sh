@@ -1,3 +1,6 @@
+SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+cd ${SCRIPTPATH}
+
 PATH_TO_FILE=../../models/face_recognition/face_recognition.pb.onnx
 DIR="$(dirname $PATH_TO_FILE)"
 FILE="$(basename $PATH_TO_FILE)"
