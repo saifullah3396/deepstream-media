@@ -15,3 +15,5 @@
 *.trt
 *.pb
 *.etlt
+models/facedetectir/facedetectir_int8.txt
+models/facedetectir/labels_facedetectir.txt
