@@ -35,7 +35,7 @@ extern "C" bool loadModelChars(const char *app_root)
     // load model characters first
     std::ifstream model_configs_file(
         std::string(app_root) +
-        "/src/nvdsinfer_parsers/text_recognition/src/nvdsinfer_parsers_config.json");
+        "/src/nvdsinfer_parsers/text_recognition/models_config.json");
     if (
         model_configs_file.is_open() &&
         reader.parse(model_configs_file, model_configs))
@@ -184,77 +184,90 @@ extern "C" bool NvDsInferTextRecognitionParser(
             return false;
         }
 
-        loadModelChars(app_root);
-        loadLanguageChars(app_root);
-        loadLanguageDict(app_root);
+        if (!loadModelChars(app_root) ||
+            !loadLanguageChars(app_root) ||
+            !loadLanguageDict(app_root))
+        {
+            return false;
+        }
 
         configLoaded = true;
     }
 
-    /* Get the number of attributes supported by the classifier. */
-    unsigned int numAttributes = outputLayersInfo.size();
-
-    /* Iterate through all the output coverage layers of the classifier.
-    */
-    for (unsigned int lIdx = 0; lIdx < numAttributes; lIdx++)
+    try
     {
-        /* outputCoverageBuffer for classifiers is usually a softmax layer.
-         * The layer is an array of probabilities of the object belonging
-         * to each class with each probability being in the range [0,1] and
-         * sum all probabilities will be 1.
-         */
-        NvDsInferDimsCHW dims;
-        getDimsCHWFromDims(dims, outputLayersInfo[lIdx].inferDims);
-        float *outputEmbedding = (float *)outputLayersInfo[lIdx].buffer;
-        NvDsInferAttribute attr;
+        /* Get the number of attributes supported by the classifier. */
+        unsigned int numAttributes = outputLayersInfo.size();
 
-        // find the idx of the letter with maximum probability for each channel
-        std::vector<float> maxProb(dims.c, 0.0);
-        std::vector<int> maxProbIdx(dims.c, -1);
-        for (unsigned int cIdx = 0; cIdx < dims.c; ++cIdx)
+        /* Iterate through all the output coverage layers of the classifier.
+        */
+        for (unsigned int lIdx = 0; lIdx < numAttributes; lIdx++)
         {
-            float prob = 0.0;
-            for (unsigned int hIdx = 0; hIdx < dims.h; hIdx++)
+            /* outputCoverageBuffer for classifiers is usually a softmax layer.
+            * The layer is an array of probabilities of the object belonging
+            * to each class with each probability being in the range [0,1] and
+            * sum all probabilities will be 1.
+            */
+            NvDsInferDimsCHW dims;
+            getDimsCHWFromDims(dims, outputLayersInfo[lIdx].inferDims);
+            float *outputEmbedding = (float *)outputLayersInfo[lIdx].buffer;
+            NvDsInferAttribute attr;
+
+            // find the idx of the letter with maximum probability for each channel
+            std::vector<float> maxProb(dims.c, 0.0);
+            std::vector<int> maxProbIdx(dims.c, -1);
+            for (unsigned int cIdx = 0; cIdx < dims.c; ++cIdx)
             {
-                prob = outputEmbedding[cIdx * dims.h + hIdx];
-                if (prob > maxProb[cIdx])
+                float prob = 0.0;
+                for (unsigned int hIdx = 0; hIdx < dims.h; hIdx++)
                 {
-                    maxProb[cIdx] = prob;
-                    maxProbIdx[cIdx] = hIdx;
+                    prob = outputEmbedding[cIdx * dims.h + hIdx];
+                    if (prob > maxProb[cIdx])
+                    {
+                        maxProb[cIdx] = prob;
+                        maxProbIdx[cIdx] = hIdx;
+                    }
+                }
+            }
+
+            std::wstring output;
+            std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+            for (unsigned int cIdx = 0; cIdx < dims.c; ++cIdx)
+            {
+                const auto &charIdx = maxProbIdx[cIdx];
+                if (charIdx > 0 && !(cIdx > 0 && charIdx == maxProbIdx[cIdx - 1]))
+                {
+                    if (
+                        ignore_chars.find(recognizable_chars[charIdx - 1]) ==
+                        std::wstring::npos)
+                    {
+                        output += recognizable_chars[charIdx - 1];
+                    }
+                }
+            }
+
+            if (!output.empty())
+            {
+                auto label = new std::string(converter.to_bytes(output));
+                attr.attributeIndex = 0;
+                attr.attributeValue = 0;
+                attr.attributeConfidence = 1;
+                attr.attributeLabel = label->c_str();
+                attrList.push_back(attr);
+                if (attr.attributeLabel)
+                {
+                    descString = attr.attributeLabel;
+                    descString.append(" ");
                 }
             }
         }
-
-        std::wstring output;
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-        for (unsigned int cIdx = 0; cIdx < dims.c; ++cIdx)
-        {
-            const auto &charIdx = maxProbIdx[cIdx];
-            if (charIdx > 0 && !(cIdx > 0 && charIdx == maxProbIdx[cIdx - 1]))
-            {
-                if (
-                    ignore_chars.find(recognizable_chars[charIdx - 1]) ==
-                    std::wstring::npos)
-                {
-                    output += recognizable_chars[charIdx - 1];
-                }
-            }
-        }
-
-        if (!output.empty())
-        {
-            auto label = new std::string(converter.to_bytes(output));
-            attr.attributeIndex = 0;
-            attr.attributeValue = 0;
-            attr.attributeConfidence = 1;
-            attr.attributeLabel = label->c_str();
-            attrList.push_back(attr);
-            if (attr.attributeLabel)
-            {
-                descString = attr.attributeLabel;
-                descString.append(" ");
-            }
-        }
+    }
+    catch (const std::exception &exc)
+    {
+        std::cerr
+            << "NvDsInferTextRecognitionParser: "
+            << "Exception raised with the following message: " << exc.what() << std::endl;
+        return true;
     }
 
 #ifdef DEBUG

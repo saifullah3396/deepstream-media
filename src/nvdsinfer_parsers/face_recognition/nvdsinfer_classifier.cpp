@@ -76,64 +76,74 @@ extern "C" bool NvDsInferFaceRecognitionParser(
         embeddingsLoaded = true;
     }
 
-    /* Get the number of attributes supported by the classifier. */
-    unsigned int numAttributes = outputLayersInfo.size();
-
-    /* Iterate through all the output coverage layers of the classifier.
-    */
-    for (unsigned int lIdx = 0; lIdx < numAttributes; lIdx++)
+    try
     {
-        /* outputCoverageBuffer for classifiers is usually a softmax layer.
-         * The layer is an array of probabilities of the object belonging
-         * to each class with each probability being in the range [0,1] and
-         * sum all probabilities will be 1.
-         */
-        NvDsInferDimsCHW dims;
-        getDimsCHWFromDims(dims, outputLayersInfo[lIdx].inferDims);
-        unsigned int outputEmbeddingSize = dims.c;
-        float *outputEmbedding = (float *)outputLayersInfo[lIdx].buffer;
-        float &correlationThreshold = classifierThreshold;
-        NvDsInferAttribute attr;
+        /* Get the number of attributes supported by the classifier. */
+        unsigned int numAttributes = outputLayersInfo.size();
 
-        int bestDist = 1000;
-        int bestIdx = -1;
-        for (unsigned int kIdx = 0; kIdx < knownEmbeddings.size(); ++kIdx)
+        /* Iterate through all the output coverage layers of the classifier.
+        */
+        for (unsigned int lIdx = 0; lIdx < numAttributes; lIdx++)
         {
-            float prodMean = 0.0;
-            float outputSqrdMean = 0.0;
-            float knownSqrdMean = 0.0;
-            for (unsigned int jIdx = 0; jIdx < outputEmbeddingSize; jIdx++)
+            /* outputCoverageBuffer for classifiers is usually a softmax layer.
+            * The layer is an array of probabilities of the object belonging
+            * to each class with each probability being in the range [0,1] and
+            * sum all probabilities will be 1.
+            */
+            NvDsInferDimsCHW dims;
+            getDimsCHWFromDims(dims, outputLayersInfo[lIdx].inferDims);
+            unsigned int outputEmbeddingSize = dims.c;
+            float *outputEmbedding = (float *)outputLayersInfo[lIdx].buffer;
+            float &correlationThreshold = classifierThreshold;
+            NvDsInferAttribute attr;
+
+            int bestDist = 1000;
+            int bestIdx = -1;
+            for (unsigned int kIdx = 0; kIdx < knownEmbeddings.size(); ++kIdx)
             {
-                auto ke = knownEmbeddings[kIdx][jIdx];
-                auto oe = outputEmbedding[jIdx];
-                prodMean += (ke * oe);
-                outputSqrdMean += (ke * ke);
-                knownSqrdMean += (oe * oe);
+                float prodMean = 0.0;
+                float outputSqrdMean = 0.0;
+                float knownSqrdMean = 0.0;
+                for (unsigned int jIdx = 0; jIdx < outputEmbeddingSize; jIdx++)
+                {
+                    auto ke = knownEmbeddings[kIdx][jIdx];
+                    auto oe = outputEmbedding[jIdx];
+                    prodMean += (ke * oe);
+                    outputSqrdMean += (ke * ke);
+                    knownSqrdMean += (oe * oe);
+                }
+                prodMean /= outputEmbeddingSize;
+                outputSqrdMean /= outputEmbeddingSize;
+                knownSqrdMean /= outputEmbeddingSize;
+                auto dist = 1.0 - prodMean / sqrt(outputSqrdMean * knownSqrdMean);
+                if (dist == dist && dist < correlationThreshold && dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestIdx = kIdx;
+                }
             }
-            prodMean /= outputEmbeddingSize;
-            outputSqrdMean /= outputEmbeddingSize;
-            knownSqrdMean /= outputEmbeddingSize;
-            auto dist = 1.0 - prodMean / sqrt(outputSqrdMean * knownSqrdMean);
-            if (dist == dist && dist < correlationThreshold && dist < bestDist)
+
+            if (bestIdx != -1)
             {
-                bestDist = dist;
-                bestIdx = kIdx;
+                attr.attributeIndex = lIdx;
+                attr.attributeValue = bestIdx;
+                attr.attributeConfidence = bestDist;
+                attr.attributeLabel = labels[bestIdx].c_str();
+                attrList.push_back(attr);
+                if (attr.attributeLabel)
+                {
+                    descString = attr.attributeLabel;
+                    descString.append(" ");
+                }
             }
         }
-
-        if (bestIdx != -1)
-        {
-            attr.attributeIndex = lIdx;
-            attr.attributeValue = bestIdx;
-            attr.attributeConfidence = bestDist;
-            attr.attributeLabel = labels[bestIdx].c_str();
-            attrList.push_back(attr);
-            if (attr.attributeLabel)
-            {
-                descString = attr.attributeLabel;
-                descString.append(" ");
-            }
-        }
+    }
+    catch (const std::exception &exc)
+    {
+        std::cerr
+            << "NvDsInferFaceRecognitionParser: "
+            << "Exception raised with the following message: " << exc.what() << std::endl;
+        return true;
     }
 
     return true;

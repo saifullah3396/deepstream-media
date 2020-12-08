@@ -281,8 +281,11 @@ extern "C" bool NvDsInferParseCraft(
             }
         }
     }
-    catch (const cv::Exception &exception)
+    catch (const std::exception &exc)
     {
+        std::cerr
+            << "NvDsInferParseCraft: "
+            << "Exception raised with the following message: " << exc.what() << std::endl;
         return true;
     }
 #ifdef DEBUG
