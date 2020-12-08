@@ -20,37 +20,48 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 
-APP:= deepstream-app
+APP:= media_analytics_app
 
 TARGET_DEVICE = $(shell gcc -dumpmachine | cut -f1 -d -)
 
 NVDS_VERSION:=5.0
 
-PATH_TO_COMMONS?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/sources
-PATH_TO_COMMONS=./deepstream
+DEEPSTREAM_SOURCES=../deepstream_base
 LIB_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/
 APP_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/bin/
 
 ifeq ($(TARGET_DEVICE),aarch64)
-  CFLAGS:= -DPLATFORM_TEGRA
+	CFLAGS:= -DPLATFORM_TEGRA
 endif
 
 SRCS:= $(wildcard *.c)
-SRCS+= $(wildcard apps-common/src/*.c)
+SRCS+= $(wildcard ../apps_common/src/*.c)
 CXX_SRCS+= $(wildcard *.cpp)
 
 INCS:= $(wildcard *.h)
 
-PKGS:= gstreamer-1.0 gstreamer-video-1.0 glib-2.0 gobject-2.0 json-glib-1.0 uuid x11
+PKGS:= \
+		gstreamer-1.0 gstreamer-video-1.0 glib-2.0 gobject-2.0 json-glib-1.0 \
+		uuid x11
 
 OBJS:= $(SRCS:.c=.o)
 CXX_OBJS:= $(CXX_SRCS:.cpp=.o)
 
-CFLAGS+= -Iapps-common/includes -I$(PATH_TO_COMMONS)/includes -DDS_VERSION_MINOR=0 -DDS_VERSION_MAJOR=5
-CXXFLAGS+= -Iapps-common/includes -I$(PATH_TO_COMMONS)/includes -DDS_VERSION_MINOR=0 -DDS_VERSION_MAJOR=5
+CFLAGS+= \
+		-I../apps_common/includes \
+		-I$(DEEPSTREAM_SOURCES)/includes \
+		-DDS_VERSION_MINOR=0 \
+		-DDS_VERSION_MAJOR=5
+CXXFLAGS+= \
+		-I../apps_common/includes \
+		-I$(DEEPSTREAM_SOURCES)/includes \
+		-DDS_VERSION_MINOR=0 \
+		-DDS_VERSION_MAJOR=5
 
-LIBS+= -L$(LIB_INSTALL_DIR) -lnvdsgst_meta -lnvds_meta -lnvdsgst_helper -lnvdsgst_smartrecord -lnvds_utils -lm \
-       -lgstrtspserver-1.0 -ljsoncpp -lopencv_core -lopencv_imgproc -lopencv_calib3d -ldl -Wl,-rpath,$(LIB_INSTALL_DIR)
+LIBS+= -L$(LIB_INSTALL_DIR) \
+		-lnvdsgst_meta -lnvds_meta -lnvdsgst_helper -lnvdsgst_smartrecord \
+		-lnvds_utils -lm -lgstrtspserver-1.0 -ljsoncpp -lopencv_core \
+		-lopencv_imgproc -lopencv_calib3d -ldl -Wl,-rpath,$(LIB_INSTALL_DIR)
 
 CFLAGS+= `pkg-config --cflags $(PKGS)`
 CXXFLAGS+= `pkg-config --cflags $(PKGS)`
