@@ -9,10 +9,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "nvdsinfer_custom_impl.h"
 
-//#define MIN(a,b) ((a) < (b) ? (a) : (b))
-//#define MAX(a,b) ((a) > (b) ? (a) : (b))
-//#define CLIP(a,min,max) (MAX(MIN(a, max), min))
-//#define DIVIDE_AND_ROUND_UP(a, b) ((a + b - 1) / b)
 #define TEXT_THRESHOLD 0.7
 #define LOW_TEXT_THRESHOLD 0.4
 #define LINK_THRESHOLD 0.4
@@ -27,15 +23,17 @@
  * detector model for text detection. */
 
 /* C-linkage to prevent name-mangling */
-extern "C" bool NvDsInferParseCraft(std::vector<NvDsInferLayerInfo> const &outputLayersInfo,
-                                    NvDsInferNetworkInfo const &networkInfo,
-                                    NvDsInferParseDetectionParams const &detectionParams,
-                                    std::vector<NvDsInferObjectDetectionInfo> &objectList);
+extern "C" bool NvDsInferParseCraft(
+    std::vector<NvDsInferLayerInfo> const &outputLayersInfo,
+    NvDsInferNetworkInfo const &networkInfo,
+    NvDsInferParseDetectionParams const &detectionParams,
+    std::vector<NvDsInferObjectDetectionInfo> &objectList);
 
-extern "C" bool NvDsInferParseCraft(std::vector<NvDsInferLayerInfo> const &outputLayersInfo,
-                                    NvDsInferNetworkInfo const &networkInfo,
-                                    NvDsInferParseDetectionParams const &detectionParams,
-                                    std::vector<NvDsInferObjectDetectionInfo> &objectList)
+extern "C" bool NvDsInferParseCraft(
+    std::vector<NvDsInferLayerInfo> const &outputLayersInfo,
+    NvDsInferNetworkInfo const &networkInfo,
+    NvDsInferParseDetectionParams const &detectionParams,
+    std::vector<NvDsInferObjectDetectionInfo> &objectList)
 {
 #ifdef DEBUG
     auto timeStart = std::chrono::high_resolution_clock::now();
@@ -51,7 +49,8 @@ extern "C" bool NvDsInferParseCraft(std::vector<NvDsInferLayerInfo> const &outpu
             if (strcmp(outputLayersInfo[i].layerName, "scores") == 0)
             {
                 scoresLayerIndex = i;
-                getDimsCHWFromDims(scoresLayerDims, outputLayersInfo[i].inferDims);
+                getDimsCHWFromDims(
+                    scoresLayerDims, outputLayersInfo[i].inferDims);
                 break;
             }
         }

@@ -11,8 +11,8 @@ LIBS:= -lnvinfer -lnvparsers -lopencv_core -lopencv_imgproc -lopencv_calib3d \
 	-L${TENSOR_RT}/lib -ljsoncpp
 LFLAGS:= -Wl,--start-group $(LIBS) -Wl,--end-group
 
-SRCFILES:= nvdsinfer_textrecognitionparser.cpp
-TARGET_LIB:= libnvdsinfer_textrecognitionparser.so
+SRCFILES:= nvdsinfer_classifier.cpp
+TARGET_LIB:= libnvdsinfer_classifier.so
 
 all: $(TARGET_LIB)
 

@@ -22,8 +22,8 @@ LIBS:= \
 	-L$(TENSOR_RT)/lib
 LFLAGS:= -Wl,--start-group $(LIBS) -Wl,--end-group
 
-SRCFILES:= nvdsinfer_craftbboxparser.cpp
-TARGET_LIB:= libnvds_infercraftparser.so
+SRCFILES:= nvdsinfer_bboxparser.cpp
+TARGET_LIB:= libnvdsinfer_bboxparser.so
 
 all: $(TARGET_LIB)
 

@@ -35,7 +35,7 @@ extern "C" bool loadModelChars(const char *app_root)
     // load model characters first
     std::ifstream model_configs_file(
         std::string(app_root) +
-        "/models/text_recognition/models_config.json");
+        "/src/nvdsinfer_parsers/text_recognition/src/nvdsinfer_parsers_config.json");
     if (
         model_configs_file.is_open() &&
         reader.parse(model_configs_file, model_configs))
@@ -82,7 +82,7 @@ extern "C" bool loadLanguageChars(const char *app_root)
     // load language characters
     std::ifstream lang_characters_file(
         std::string(app_root) +
-        "/models/text_recognition/characters/" + lang + "_char.txt");
+        "/src/nvdsinfer_parsers/text_recognition/characters/" + lang + "_char.txt");
     if (lang_characters_file.is_open())
     {
         // create a set of language characters
@@ -132,7 +132,7 @@ extern "C" bool loadLanguageDict(const char *app_root)
     // load language dictionary
     std::ifstream lang_dict_file(
         std::string(app_root) +
-        "/models/text_recognition/dict/" + lang + ".txt");
+        "/src/nvdsinfer_parsers/text_recognition/dict/" + lang + ".txt");
     if (lang_dict_file.is_open())
     {
         // create a set of language characters
@@ -232,7 +232,9 @@ extern "C" bool NvDsInferTextRecognitionParser(
             const auto &charIdx = maxProbIdx[cIdx];
             if (charIdx > 0 && !(cIdx > 0 && charIdx == maxProbIdx[cIdx - 1]))
             {
-                if (ignore_chars.find(recognizable_chars[charIdx - 1]) == std::wstring::npos)
+                if (
+                    ignore_chars.find(recognizable_chars[charIdx - 1]) ==
+                    std::wstring::npos)
                 {
                     output += recognizable_chars[charIdx - 1];
                 }
