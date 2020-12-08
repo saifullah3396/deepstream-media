@@ -49,6 +49,7 @@ def main():
         exit(1)
 
     dynamic_axis = None
+    model_name = './{}/{}.onnx'.format(weights_file_dir, weights_file)
     if args.model == 'craft':
         from models.craft import easyocr
         model = easyocr.craft.CRAFT(y_permute=False)
@@ -63,8 +64,9 @@ def main():
         output_names = ['scores']
         # batch and width can be dynamic
         dynamic_axis = {
-            'input': {0: 'batch', 3: 'width'},
+            'input': {0: 'batch'},
         }
+        model_name = './{}/{}-{}.onnx'.format(weights_file_dir, weights_file, input_shape[3])
     else:
         print('{} model is not supported.'.format(args.model))
         exit(1)
@@ -75,7 +77,7 @@ def main():
     torch.onnx.export(
         model,
         x,
-        './{}/{}.onnx'.format(weights_file_dir, weights_file),
+        model_name,
         input_names=['input'],
         output_names=output_names,
         verbose=verbose,
