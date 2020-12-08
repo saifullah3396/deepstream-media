@@ -1103,6 +1103,47 @@ get_converted_buffer (GstNvInfer * nvinfer, NvBufSurface * src_surf,
           cudaGetErrorName (cudaReturn));
       return GST_FLOW_ERROR;
     }
+  } else if (nvinfer->maintain_aspect_ratio_fixed_height) {
+    /* Calculate the destination width and height required to maintain
+     * the aspect ratio. */
+    double hdest = dest_frame->height;
+    double wdest = dest_frame->height * src_width / (double) src_height;
+    int pixel_size;
+    cudaError_t cudaReturn;
+
+    if (wdest <= dest_frame->width) {
+      dest_width = wdest;
+      dest_height = dest_frame->height;
+    }
+
+    switch (dest_frame->colorFormat) {
+      case NVBUF_COLOR_FORMAT_RGBA:
+        pixel_size = 4;
+        break;
+      case NVBUF_COLOR_FORMAT_RGB:
+        pixel_size = 3;
+        break;
+      case NVBUF_COLOR_FORMAT_GRAY8:
+      case NVBUF_COLOR_FORMAT_NV12:
+        pixel_size = 1;
+        break;
+      default:
+        g_assert_not_reached ();
+        break;
+    }
+
+    /* Pad the scaled image with black color in horizontal. */
+    cudaReturn =
+        cudaMemset2DAsync ((uint8_t *) destCudaPtr + pixel_size * dest_width,
+        dest_frame->planeParams.pitch[0], 0,
+        pixel_size * (dest_frame->width - dest_width), dest_frame->height,
+        nvinfer->convertStream);
+    if (cudaReturn != cudaSuccess) {
+      GST_ERROR_OBJECT (nvinfer,
+          "cudaMemset2DAsync failed with error %s while converting buffer",
+          cudaGetErrorName (cudaReturn));
+      return GST_FLOW_ERROR;
+    }
   } else {
     dest_width = nvinfer->network_width;
     dest_height = nvinfer->network_height;

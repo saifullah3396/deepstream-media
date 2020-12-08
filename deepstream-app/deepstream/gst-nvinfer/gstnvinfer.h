@@ -222,6 +222,10 @@ struct _GstNvInfer
    * network resolution. Right/bottom areas will be filled with black areas. */
   gboolean maintain_aspect_ratio;
 
+  /** Boolean indicating if aspect ratio should be maintained when scaling to
+   * network resolution. Right/bottom areas will be filled with black areas. */
+  gboolean maintain_aspect_ratio_fixed_height;
+
   /** Vector for per-class detection filtering parameters. */
   std::vector<GstNvInferDetectionFilterParams> *perClassDetectionFilterParams;
 
