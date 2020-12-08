@@ -373,6 +373,11 @@ gst_nvinfer_parse_other_attribute (GstNvInfer * nvinfer,
             CONFIG_GROUP_INFER_MAINTAIN_ASPECT_RATIO, &error))
       nvinfer->maintain_aspect_ratio = TRUE;
     CHECK_ERROR (error);
+  } else if (!g_strcmp0 (key, CONFIG_GROUP_INFER_MAINTAIN_ASPECT_RATIO_FIXED_HEIGHT)) {
+    if (g_key_file_get_boolean (key_file, group_name,
+            CONFIG_GROUP_INFER_MAINTAIN_ASPECT_RATIO_FIXED_HEIGHT, &error))
+      nvinfer->maintain_aspect_ratio_fixed_height = TRUE;
+    CHECK_ERROR (error);
   } else if (!g_strcmp0 (key, CONFIG_GROUP_INFER_INPUT_OBJECT_MIN_WIDTH)) {
     nvinfer->min_input_object_width = g_key_file_get_integer (key_file,
         group_name, CONFIG_GROUP_INFER_INPUT_OBJECT_MIN_WIDTH,

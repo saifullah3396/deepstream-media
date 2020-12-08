@@ -39,7 +39,6 @@
 #define CONFIG_GROUP_INFER_SECONDARY_REINFER_INTERVAL "secondary-reinfer-interval"
 #define CONFIG_GROUP_INFER_OUTPUT_TENSOR_META "output-tensor-meta"
 
-
 #define CONFIG_GROUP_INFER_ENABLE_DLA "enable-dla"
 #define CONFIG_GROUP_INFER_USE_DLA_CORE "use-dla-core"
 
@@ -65,6 +64,7 @@
 #define CONFIG_GROUP_INFER_OFFSETS "offsets"
 #define CONFIG_GROUP_INFER_MEANFILE "mean-file"
 #define CONFIG_GROUP_INFER_MAINTAIN_ASPECT_RATIO "maintain-aspect-ratio"
+#define CONFIG_GROUP_INFER_MAINTAIN_ASPECT_RATIO_FIXED_HEIGHT "maintain-aspect-ratio-fixed-height"
 #define CONFIG_GROUP_INFER_SCALING_FILTER "scaling-filter"
 #define CONFIG_GROUP_INFER_SCALING_COMPUTE_HW "scaling-compute-hw"
 
@@ -142,11 +142,10 @@
 #define CONFIG_GROUP_INFER_CLASS_ATTRS_NMS_IOU_THRESHOLD "nms-iou-threshold"
 #define CONFIG_GROUP_INFER_CLASS_ATTRS_TOP_K "topk"
 
-gboolean gst_nvinfer_parse_config_file (GstNvInfer *nvinfer,
-        NvDsInferContextInitParams *init_params, const gchar * cfg_file_path);
+gboolean gst_nvinfer_parse_config_file(GstNvInfer *nvinfer,
+                                       NvDsInferContextInitParams *init_params, const gchar *cfg_file_path);
 
-gboolean gst_nvinfer_parse_context_params (NvDsInferContextInitParams *params,
-        const gchar * cfg_file_path);
-
+gboolean gst_nvinfer_parse_context_params(NvDsInferContextInitParams *params,
+                                          const gchar *cfg_file_path);
 
 #endif /*__GST_NVINFER_PROPERTY_PARSER_H__*/
