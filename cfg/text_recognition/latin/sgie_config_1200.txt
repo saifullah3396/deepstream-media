@@ -51,9 +51,8 @@ gpu-id=0
 net-scale-factor=0.00784313725490196
 # means subtraction as done in easyocr
 offsets=127.0
-dynamic-input-size=1
 model-color-format=2
-model-engine-file=../../models/text_recognition/latin-1200.onnx.trt
+model-engine-file=../../../models/text_recognition/latin/latin-1200.trt
 # .6 of 640
 input-object-min-width=193
 input-object-max-width=384
@@ -64,12 +63,12 @@ network-type=1
 num-detected-classes=1
 interval=10
 maintain-aspect-ratio-fixed-height=1
-scale-with-height=1
 infer-dims=1;64;1200
 output-blob-names=scores
 parse-classifier-func-name=NvDsInferTextRecognitionParser
-custom-lib-path=../../models/text_recognition/nvdsinfer_textrecognitionparser/libnvdsinfer_textrecognitionparser.so
+custom-lib-path=../../../src/nvdsinfer_parsers/text_recognition/libnvdsinfer_classifier.so
 classifier-threshold=0.1
+process-mode=2
 
 [class-attrs-all]
 pre-cluster-threshold=0.2
