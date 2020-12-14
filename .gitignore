@@ -18,3 +18,4 @@
 models/facedetectir/facedetectir_int8.txt
 models/facedetectir/labels_facedetectir.txt
 src/media_analytics_app/media_analytics_app
+*.ogv
