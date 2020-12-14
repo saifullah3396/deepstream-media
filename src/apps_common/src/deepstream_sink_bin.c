@@ -235,7 +235,7 @@ create_msg_conv_broker_bin (NvDsSinkMsgConvBrokerConfig *config,
 
   if (!config->disable_msgconv)
     g_object_set (G_OBJECT(bin->transform), "config", config->config_file_path,
-                "msg2p-lib", (config->conv_msg2p_lib ? config->conv_msg2p_lib : "null"),
+                "msg2p-lib", config->conv_msg2p_lib,
                 "payload-type", config->conv_payload_type,
                 "comp-id", config->conv_comp_id,
                 NULL);
