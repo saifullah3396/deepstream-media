@@ -53,6 +53,8 @@ typedef enum NvDsEventType {
   NVDS_EVENT_RESERVED = 0x100,
   /** Specifies a custom event. */
   NVDS_EVENT_CUSTOM = 0x101,
+  NVDS_EVENT_MAA_PERSON_DETECTED = 0x102,
+  NVDS_EVENT_MAA_TEXT_DETECTED = 0x103,
   NVDS_EVENT_FORCE32 = 0x7FFFFFFF
 } NvDsEventType;
 
@@ -76,6 +78,8 @@ typedef enum NvDsObjectType {
   NVDS_OBJECT_TYPE_CUSTOM = 0x101,
   /** "object" key will be missing in the schema */
   NVDS_OBJECT_TYPE_UNKNOWN = 0x102,
+  NVDS_OBJECT_TYPE_MAA_PERSON = 0x103,
+  NVDS_OBJECT_TYPE_MAA_TEXT = 0x104,
   NVDS_OBEJCT_TYPE_FORCE32 = 0x7FFFFFFF
 } NvDsObjectType;
 
@@ -91,6 +95,7 @@ typedef enum NvDsPayloadType {
   /** Specifies a custom payload. You must implement the nvds_msg2p_*
    interface. */
   NVDS_PAYLOAD_CUSTOM = 0x101,
+  NVDS_PAYLOAD_MAA = 0x102,
   NVDS_PAYLOAD_FORCE32 = 0x7FFFFFFF
 } NvDsPayloadType;
 
@@ -172,6 +177,20 @@ typedef struct NvDsFaceObject {
   gchar *eyecolor;  /**< Holds a pointer to the person's eye color. */
   guint age;        /**< Holds the person's age. */
 } NvDsFaceObject;
+
+/**
+ * Holds a custom person object's parameters.
+ */
+typedef struct NvDsMAAPersonObject {
+  gchar *name;      /**< Holds a pointer to the person's name. */
+} NvDsMAAPersonObject;
+
+/**
+ * Holds a custom text object's parameters.
+ */
+typedef struct NvDsMAATextObject {
+  gchar *content;      /**< Holds a pointer to the text's content. */
+} NvDsMAATextObject;
 
 /**
  * Holds a vehicle object's parameters.
