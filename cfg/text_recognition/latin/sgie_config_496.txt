@@ -60,7 +60,7 @@ network-mode=2
 network-type=1
 # secondary
 num-detected-classes=1
-interval=10
+interval=0
 maintain-aspect-ratio-fixed-height=1
 infer-dims=1;64;496
 output-blob-names=scores
