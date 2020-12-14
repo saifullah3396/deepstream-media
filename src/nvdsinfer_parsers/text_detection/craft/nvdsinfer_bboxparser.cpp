@@ -8,6 +8,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "nvdsinfer_custom_impl.h"
+#include "../../../media_analytics_app/app_config_analytics_types.h"
 
 #define TEXT_THRESHOLD 0.7
 #define LOW_TEXT_THRESHOLD 0.4
@@ -225,8 +226,8 @@ extern "C" bool NvDsInferParseCraft(
                 const auto &box = bboxList[0];
                 auto margin = ADD_MARGIN * box.height;
                 NvDsInferObjectDetectionInfo object;
-                object.classId = 0;
-                object.detectionConfidence = 1.0;
+                object.classId = APP_CONFIG_ANALYTICS_MULTI_MODEL_TYPE_TEXT;
+                object.detectionConfidence = 1.0; // dummy
 
                 object.left = box.x - margin;
                 object.top = box.y - margin;
@@ -269,8 +270,8 @@ extern "C" bool NvDsInferParseCraft(
                 {
                     auto margin = ADD_MARGIN * box.height;
                     NvDsInferObjectDetectionInfo object;
-                    object.classId = 0;
-                    object.detectionConfidence = 1.0;
+                    object.classId = APP_CONFIG_ANALYTICS_MULTI_MODEL_TYPE_TEXT;
+                    object.detectionConfidence = 1.0; // dummy
 
                     object.left = box.x - margin;
                     object.top = box.y - margin;
