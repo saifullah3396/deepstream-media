@@ -56,7 +56,9 @@ model-engine-file=../../../models/text_detection/craft/craft.onnx.trt
 ## 0=FP32, 1=INT8, 2=FP16 mode
 network-type=0
 network-mode=0
-num-detected-classes=1
+# Number of detected classes is 1 for text detection but it is still set to 2
+# because the label for text is 1 instead of 0.
+num-detected-classes=2
 interval=0
 infer-dims=3;360;640
 output-blob-names=scores;features
