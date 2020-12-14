@@ -12,6 +12,8 @@
 #include <gst/gst.h>
 #include <glib.h>
 
+#include <iostream>
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -39,6 +41,7 @@
 #include "nvdsmeta_schema.h"
 
 #include "deepstream_media_app.h"
+#include "app_config_analytics_types.h"
 
 #define MAX_DISPLAY_LEN (64)
 #define MAX_TIME_STAMP_LEN (64)
@@ -52,57 +55,12 @@
  * nvmsgconv + Broker Metadata manipulation possibility
  */
 
-/**
- * IMPORTANT Note 1:
- * The code within the check for model_used == APP_CONFIG_ANALYTICS_RESNET_PGIE_3SGIE_TYPE_COLOR_MAKE
- * is applicable as sample demo code for
- * configs that use resnet PGIE model
- * with class ID's: {0, 1, 2, 3} for {CAR, BICYCLE, PERSON, ROADSIGN}
- * followed by optional Tracker + 3 X SGIEs (Vehicle-Type,Color,Make)
- * only!
- * Please comment out the code if using any other
- * custom PGIE + SGIE combinations
- * and use the code as reference to write your own
- * NvDsEventMsgMeta generation code in generate_event_msg_meta()
- * function
- */
 typedef enum
 {
     APP_CONFIG_ANALYTICS_MODELS_UNKNOWN = 0,
-    APP_CONFIG_ANALYTICS_RESNET_PGIE_3SGIE_TYPE_COLOR_MAKE = 1,
+    APP_CONFIG_ANALYTICS_MULTI_MODEL = 1,
 } AppConfigAnalyticsModel;
 
-/**
- * IMPORTANT Note 2:
- * GENERATE_DUMMY_META_EXT macro implements code
- * that assumes APP_CONFIG_ANALYTICS_RESNET_PGIE_3SGIE_TYPE_COLOR_MAKE
- * case discussed above, and generate dummy metadata
- * for other classes like Person class
- *
- * Vehicle class schema meta (NvDsVehicleObject) is filled
- * in properly from Classifier-Metadata;
- * see in-code documentation and usage of
- * schema_fill_sample_sgie_vehicle_metadata()
- */
-//#define GENERATE_DUMMY_META_EXT
-
-/** Following class-ID's
- * used for demonstration code
- * assume an ITS detection model
- * which outputs CLASS_ID=0 for Vehicle class
- * and CLASS_ID=2 for Person class
- * and SGIEs X 3 same as the sample DS config for test5-app:
- * configs/test5_config_file_src_infer_tracker_sgie.txt
- */
-
-#define SECONDARY_GIE_VEHICLE_TYPE_UNIQUE_ID (4)
-#define SECONDARY_GIE_VEHICLE_COLOR_UNIQUE_ID (5)
-#define SECONDARY_GIE_VEHICLE_MAKE_UNIQUE_ID (6)
-
-#define RESNET10_PGIE_3SGIE_TYPE_COLOR_MAKECLASS_ID_CAR (0)
-#ifdef GENERATE_DUMMY_META_EXT
-#define RESNET10_PGIE_3SGIE_TYPE_COLOR_MAKECLASS_ID_PERSON (2)
-#endif
 /** @} */
 
 #ifdef EN_DEBUG
@@ -152,7 +110,7 @@ static GMutex disp_lock;
 
 static guint rrow, rcol;
 static gboolean rrowsel = FALSE, selecting = FALSE;
-static AppConfigAnalyticsModel model_used = APP_CONFIG_ANALYTICS_MODELS_UNKNOWN;
+static AppConfigAnalyticsModel model_used = APP_CONFIG_ANALYTICS_MULTI_MODEL;
 
 static struct timeval ota_request_time;
 static struct timeval ota_completion_time;
@@ -188,24 +146,6 @@ GOptionEntry entries[] = {
      "Do not force TCP for RTP transport", NULL},
     {NULL},
 };
-
-/**
- * @brief  Fill NvDsVehicleObject with the NvDsClassifierMetaList
- *         information in NvDsObjectMeta
- *         NOTE: This function assumes the test-application is
- *         run with 3 X SGIEs sample config:
- *         test5_config_file_src_infer_tracker_sgie.txt
- *         or an equivalent config
- *         NOTE: If user is adding custom SGIEs, make sure to
- *         edit this function implementation
- * @param  obj_params [IN] The NvDsObjectMeta as detected and kept
- *         in NvDsBatchMeta->NvDsFrameMeta(List)->NvDsObjectMeta(List)
- * @param  obj [IN/OUT] The NvDSMeta-Schema defined Vehicle metadata
- *         structure
- */
-static void schema_fill_sample_sgie_vehicle_metadata(NvDsObjectMeta *
-                                                         obj_params,
-                                                     NvDsVehicleObject *obj);
 
 /**
  * @brief  Performs model update OTA operation
@@ -344,46 +284,28 @@ meta_copy_func(gpointer data, gpointer user_data)
 
     if (srcMeta->extMsgSize > 0)
     {
-        if (srcMeta->objType == NVDS_OBJECT_TYPE_VEHICLE)
+        if (srcMeta->objType == NVDS_OBJECT_TYPE_MAA_PERSON)
         {
-            NvDsVehicleObject *srcObj = (NvDsVehicleObject *)srcMeta->extMsg;
-            NvDsVehicleObject *obj =
-                (NvDsVehicleObject *)g_malloc0(sizeof(NvDsVehicleObject));
-            if (srcObj->type)
-                obj->type = g_strdup(srcObj->type);
-            if (srcObj->make)
-                obj->make = g_strdup(srcObj->make);
-            if (srcObj->model)
-                obj->model = g_strdup(srcObj->model);
-            if (srcObj->color)
-                obj->color = g_strdup(srcObj->color);
-            if (srcObj->license)
-                obj->license = g_strdup(srcObj->license);
-            if (srcObj->region)
-                obj->region = g_strdup(srcObj->region);
+            NvDsMAAPersonObject *srcObj = (NvDsMAAPersonObject *)srcMeta->extMsg;
+            NvDsMAAPersonObject *obj =
+                (NvDsMAAPersonObject *)g_malloc0(sizeof(NvDsMAAPersonObject));
+            if (srcObj->name)
+                obj->name = g_strdup(srcObj->name);
 
             dstMeta->extMsg = obj;
-            dstMeta->extMsgSize = sizeof(NvDsVehicleObject);
+            dstMeta->extMsgSize = sizeof(NvDsMAAPersonObject);
         }
-        else if (srcMeta->objType == NVDS_OBJECT_TYPE_PERSON)
+        else if (srcMeta->objType == NVDS_OBJECT_TYPE_MAA_TEXT)
         {
-            NvDsPersonObject *srcObj = (NvDsPersonObject *)srcMeta->extMsg;
-            NvDsPersonObject *obj =
-                (NvDsPersonObject *)g_malloc0(sizeof(NvDsPersonObject));
+            NvDsMAATextObject *srcObj = (NvDsMAATextObject *)srcMeta->extMsg;
+            NvDsMAATextObject *obj =
+                (NvDsMAATextObject *)g_malloc0(sizeof(NvDsMAATextObject));
 
-            obj->age = srcObj->age;
-
-            if (srcObj->gender)
-                obj->gender = g_strdup(srcObj->gender);
-            if (srcObj->cap)
-                obj->cap = g_strdup(srcObj->cap);
-            if (srcObj->hair)
-                obj->hair = g_strdup(srcObj->hair);
-            if (srcObj->apparel)
-                obj->apparel = g_strdup(srcObj->apparel);
+            if (srcObj->content)
+                obj->content = g_strdup(srcObj->content);
 
             dstMeta->extMsg = obj;
-            dstMeta->extMsgSize = sizeof(NvDsPersonObject);
+            dstMeta->extMsgSize = sizeof(NvDsMAATextObject);
         }
     }
 
@@ -420,34 +342,17 @@ meta_free_func(gpointer data, gpointer user_data)
 
     if (srcMeta->extMsgSize > 0)
     {
-        if (srcMeta->objType == NVDS_OBJECT_TYPE_VEHICLE)
+        if (srcMeta->objType == NVDS_OBJECT_TYPE_MAA_PERSON)
         {
-            NvDsVehicleObject *obj = (NvDsVehicleObject *)srcMeta->extMsg;
-            if (obj->type)
-                g_free(obj->type);
-            if (obj->color)
-                g_free(obj->color);
-            if (obj->make)
-                g_free(obj->make);
-            if (obj->model)
-                g_free(obj->model);
-            if (obj->license)
-                g_free(obj->license);
-            if (obj->region)
-                g_free(obj->region);
+            NvDsMAAPersonObject *obj = (NvDsMAAPersonObject *)srcMeta->extMsg;
+            if (obj->name)
+                g_free(obj->name);
         }
-        else if (srcMeta->objType == NVDS_OBJECT_TYPE_PERSON)
+        else if (srcMeta->objType == NVDS_OBJECT_TYPE_MAA_TEXT)
         {
-            NvDsPersonObject *obj = (NvDsPersonObject *)srcMeta->extMsg;
-
-            if (obj->gender)
-                g_free(obj->gender);
-            if (obj->cap)
-                g_free(obj->cap);
-            if (obj->hair)
-                g_free(obj->hair);
-            if (obj->apparel)
-                g_free(obj->apparel);
+            NvDsMAATextObject *obj = (NvDsMAATextObject *)srcMeta->extMsg;
+            if (obj->content)
+                g_free(obj->content);
         }
         g_free(srcMeta->extMsg);
         srcMeta->extMsg = NULL;
@@ -456,31 +361,53 @@ meta_free_func(gpointer data, gpointer user_data)
     g_free(srcMeta);
 }
 
-#ifdef GENERATE_DUMMY_META_EXT
-static void
-generate_vehicle_meta(gpointer data)
+static gchar *
+get_first_result_label(NvDsClassifierMeta *classifierMeta)
 {
-    NvDsVehicleObject *obj = (NvDsVehicleObject *)data;
-
-    obj->type = g_strdup("sedan-dummy");
-    obj->color = g_strdup("blue");
-    obj->make = g_strdup("Bugatti");
-    obj->model = g_strdup("M");
-    obj->license = g_strdup("XX1234");
-    obj->region = g_strdup("CA");
+    GList *n;
+    for (n = classifierMeta->label_info_list; n != NULL; n = n->next)
+    {
+        NvDsLabelInfo *labelInfo = (NvDsLabelInfo *)(n->data);
+        if (labelInfo->result_label[0] != '\0')
+        {
+            return g_strdup(labelInfo->result_label);
+        }
+    }
+    return NULL;
 }
 
 static void
-generate_person_meta(gpointer data)
+generate_maa_person_object_meta(
+    NvDsObjectMeta *obj_params, NvDsMAAPersonObject* obj)
 {
-    NvDsPersonObject *obj = (NvDsPersonObject *)data;
-    obj->age = 45;
-    obj->cap = g_strdup("none-dummy-person-info");
-    obj->hair = g_strdup("black");
-    obj->gender = g_strdup("male");
-    obj->apparel = g_strdup("formal");
+    obj->name = NULL;
+    GList *l;
+    for (l = obj_params->classifier_meta_list; l != NULL; l = l->next)
+    {
+        NvDsClassifierMeta *classifierMeta = (NvDsClassifierMeta *)(l->data);
+        obj->name = get_first_result_label(classifierMeta);
+
+        if (obj->name)
+            break;
+    }
 }
-#endif /**< GENERATE_DUMMY_META_EXT */
+
+static void
+generate_maa_text_object_meta(
+    NvDsObjectMeta *obj_params, NvDsMAATextObject* obj)
+{
+    obj->content = NULL;
+    GList *l;
+    for (l = obj_params->classifier_meta_list; l != NULL; l = l->next)
+    {
+        NvDsClassifierMeta *classifierMeta = (NvDsClassifierMeta *)(l->data);
+        obj->content = get_first_result_label(classifierMeta);
+
+        if (obj->content)
+            break;
+    }
+}
+
 
 static void
 generate_event_msg_meta(gpointer data, gint class_id, gboolean useTs,
@@ -537,42 +464,34 @@ generate_event_msg_meta(gpointer data, gint class_id, gboolean useTs,
 
     (void)ts_generated;
 
-    /*
-   * This demonstrates how to attach custom objects.
-   * Any custom object as per requirement can be generated and attached
-   * like NvDsVehicleObject / NvDsPersonObject. Then that object should
-   * be handled in gst-nvmsgconv component accordingly.
-   */
-    if (model_used == APP_CONFIG_ANALYTICS_RESNET_PGIE_3SGIE_TYPE_COLOR_MAKE)
+    if (model_used == APP_CONFIG_ANALYTICS_MULTI_MODEL)
     {
-        if (class_id == RESNET10_PGIE_3SGIE_TYPE_COLOR_MAKECLASS_ID_CAR)
+        if (class_id == APP_CONFIG_ANALYTICS_MULTI_MODEL_TYPE_PERSON)
         {
-            meta->type = NVDS_EVENT_MOVING;
-            meta->objType = NVDS_OBJECT_TYPE_VEHICLE;
-            meta->objClassId = RESNET10_PGIE_3SGIE_TYPE_COLOR_MAKECLASS_ID_CAR;
+            meta->type = NVDS_EVENT_MAA_PERSON_DETECTED;
+            meta->objType = NVDS_OBJECT_TYPE_MAA_PERSON;
+            meta->objClassId = APP_CONFIG_ANALYTICS_MULTI_MODEL_TYPE_PERSON;
 
-            NvDsVehicleObject *obj =
-                (NvDsVehicleObject *)g_malloc0(sizeof(NvDsVehicleObject));
-            schema_fill_sample_sgie_vehicle_metadata(obj_params, obj);
+            NvDsMAAPersonObject *obj =
+                (NvDsMAAPersonObject *)g_malloc0(sizeof(NvDsMAAPersonObject));
+            generate_maa_person_object_meta(obj_params, obj);
 
             meta->extMsg = obj;
-            meta->extMsgSize = sizeof(NvDsVehicleObject);
+            meta->extMsgSize = sizeof(NvDsMAAPersonObject);
         }
-#ifdef GENERATE_DUMMY_META_EXT
-        else if (class_id == RESNET10_PGIE_3SGIE_TYPE_COLOR_MAKECLASS_ID_PERSON)
+        else if (class_id == APP_CONFIG_ANALYTICS_MULTI_MODEL_TYPE_TEXT)
         {
-            meta->type = NVDS_EVENT_ENTRY;
-            meta->objType = NVDS_OBJECT_TYPE_PERSON;
-            meta->objClassId = RESNET10_PGIE_3SGIE_TYPE_COLOR_MAKECLASS_ID_PERSON;
+            meta->type = NVDS_EVENT_MAA_TEXT_DETECTED;
+            meta->objType = NVDS_OBJECT_TYPE_MAA_TEXT;
+            meta->objClassId = APP_CONFIG_ANALYTICS_MULTI_MODEL_TYPE_TEXT;
 
-            NvDsPersonObject *obj =
-                (NvDsPersonObject *)g_malloc0(sizeof(NvDsPersonObject));
-            generate_person_meta(obj);
+            NvDsMAATextObject *obj =
+                (NvDsMAATextObject *)g_malloc0(sizeof(NvDsMAATextObject));
+            generate_maa_text_object_meta(obj_params, obj);
 
             meta->extMsg = obj;
-            meta->extMsgSize = sizeof(NvDsPersonObject);
+            meta->extMsgSize = sizeof(NvDsMAATextObject);
         }
-#endif /**< GENERATE_DUMMY_META_EXT */
     }
 }
 
@@ -674,12 +593,6 @@ bbox_generated_probe_after_analytics(AppCtx *appCtx, GstBuffer *buf,
                     nvds_acquire_user_meta_from_pool(batch_meta);
                 if (user_event_meta)
                 {
-                    /*
-           * Since generated event metadata has custom objects for
-           * Vehicle / Person which are allocated dynamically, we are
-           * setting copy and free function to handle those fields when
-           * metadata copy happens between two components.
-           */
                     user_event_meta->user_meta_data = (void *)msg_meta;
                     user_event_meta->base_meta.batch_meta = batch_meta;
                     user_event_meta->base_meta.meta_type = NVDS_EVENT_MSG_META;
@@ -1440,8 +1353,6 @@ int main(int argc, char *argv[])
     for (i = 0; i < num_instances; i++)
     {
         appCtx[i] = (AppCtx *)g_malloc0(sizeof(AppCtx));
-        appCtx[i]->person_class_id = -1;
-        appCtx[i]->car_class_id = -1;
         appCtx[i]->index = i;
         if (show_bbox_text)
         {
@@ -1709,60 +1620,4 @@ done:
     g_free(mediaAppCtx);
 
     return 0;
-}
-
-static gchar *
-get_first_result_label(NvDsClassifierMeta *classifierMeta)
-{
-    GList *n;
-    for (n = classifierMeta->label_info_list; n != NULL; n = n->next)
-    {
-        NvDsLabelInfo *labelInfo = (NvDsLabelInfo *)(n->data);
-        if (labelInfo->result_label[0] != '\0')
-        {
-            return g_strdup(labelInfo->result_label);
-        }
-    }
-    return NULL;
-}
-
-static void
-schema_fill_sample_sgie_vehicle_metadata(NvDsObjectMeta *obj_params,
-                                         NvDsVehicleObject *obj)
-{
-    if (!obj_params || !obj)
-    {
-        return;
-    }
-
-    /** The JSON obj->classification, say type, color, or make
-   * according to the schema shall have null (unknown)
-   * classifications (if the corresponding sgie failed to provide a label)
-   */
-    obj->type = NULL;
-    obj->make = NULL;
-    obj->model = NULL;
-    obj->color = NULL;
-    obj->license = NULL;
-    obj->region = NULL;
-
-    GList *l;
-    for (l = obj_params->classifier_meta_list; l != NULL; l = l->next)
-    {
-        NvDsClassifierMeta *classifierMeta = (NvDsClassifierMeta *)(l->data);
-        switch (classifierMeta->unique_component_id)
-        {
-        case SECONDARY_GIE_VEHICLE_TYPE_UNIQUE_ID:
-            obj->type = get_first_result_label(classifierMeta);
-            break;
-        case SECONDARY_GIE_VEHICLE_COLOR_UNIQUE_ID:
-            obj->color = get_first_result_label(classifierMeta);
-            break;
-        case SECONDARY_GIE_VEHICLE_MAKE_UNIQUE_ID:
-            obj->make = get_first_result_label(classifierMeta);
-            break;
-        default:
-            break;
-        }
-    }
 }
