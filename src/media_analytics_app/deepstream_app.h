@@ -129,8 +129,6 @@ struct _AppCtx
   gboolean show_bbox_text;
   gboolean seeking;
   gboolean quit;
-  gint person_class_id;
-  gint car_class_id;
   gint return_value;
   guint index;
 
