@@ -21,7 +21,7 @@
 #define NVMSGCONV_H_
 
 
-#include "../nvdsmeta_schema.h"
+#include "nvdsmeta_schema.h"
 #include <glib.h>
 
 #ifdef __cplusplus
@@ -78,6 +78,26 @@ void nvds_msg2p_ctx_destroy (NvDsMsg2pCtx *ctx);
  */
 NvDsPayload*
 nvds_msg2p_generate (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint size);
+
+/**
+ * This function will parse the @ref NvDsEventMsgMeta and will generate multiple
+ * message payloads. Payloads will be combination of static values read from
+ * configuration file and dynamic values received in meta.
+ * Payloads will be generated based on the @ref NvDsPayloadType type provided
+ * in context creation (e.g. Deepstream, Custom etc.).
+ *
+ * @param[in] ctx pointer to library context.
+ * @param[in] events pointer to array of event objects.
+ * @param[in] size number of objects in array.
+ * @param[out] payloadCount number of payloads being returned by the function.
+ *
+ * @return pointer to @ref array of NvDsPayload pointers generated or NULL in
+ * case of error. The number of payloads in the array is returned through
+ * payloadCount. This pointer should be freed by calling g_free() and the
+ * individual payloads should be freed with @ref nvds_msg2p_release
+ */
+NvDsPayload**
+nvds_msg2p_generate_multiple (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint size, guint *payloadCount);
 
 /**
  * This function should be called to release memory allocated for payload.

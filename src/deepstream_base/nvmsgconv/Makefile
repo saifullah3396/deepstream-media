@@ -16,12 +16,11 @@ PKGS:= glib-2.0 gobject-2.0 json-glib-1.0 uuid
 
 NVDS_VERSION:=5.0
 
-PATH_TO_COMMONS?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/sources
 LIB_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/
 
 CFLAGS:= -Wall -std=c++11 -shared -fPIC
 
-CFLAGS+= -I$(PATH_TO_COMMONS)/includes
+CFLAGS+= -I../includes
 
 CFLAGS+= `pkg-config --cflags $(PKGS)`
 LIBS:= `pkg-config --libs $(PKGS)`

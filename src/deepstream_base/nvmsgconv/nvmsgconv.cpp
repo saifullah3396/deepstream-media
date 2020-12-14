@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2018-2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -375,6 +375,7 @@ generate_object_object (NvDsMsg2pCtx *ctx, NvDsEventMsgMeta *meta)
   JsonObject *jobject;
   guint i;
   gchar tracking_id[64];
+  GList *objectMask = NULL;
 
   // object object
   objectObj = json_object_new ();
@@ -470,6 +471,95 @@ generate_object_object (NvDsMsg2pCtx *ctx, NvDsEventMsgMeta *meta)
       }
       json_object_set_object_member (objectObj, "face", jobject);
       break;
+    case NVDS_OBJECT_TYPE_VEHICLE_EXT:
+      // vehicle sub object
+      jobject = json_object_new ();
+
+      if (meta->extMsgSize) {
+        NvDsVehicleObjectExt *dsObj = (NvDsVehicleObjectExt *) meta->extMsg;
+        if (dsObj) {
+          json_object_set_string_member (jobject, "type", dsObj->type);
+          json_object_set_string_member (jobject, "make", dsObj->make);
+          json_object_set_string_member (jobject, "model", dsObj->model);
+          json_object_set_string_member (jobject, "color", dsObj->color);
+          json_object_set_string_member (jobject, "licenseState", dsObj->region);
+          json_object_set_string_member (jobject, "license", dsObj->license);
+          json_object_set_double_member (jobject, "confidence", meta->confidence);
+
+          objectMask = dsObj->mask;
+        }
+      } else {
+        // No vehicle object in meta data. Attach empty vehicle sub object.
+        json_object_set_string_member (jobject, "type", "");
+        json_object_set_string_member (jobject, "make", "");
+        json_object_set_string_member (jobject, "model", "");
+        json_object_set_string_member (jobject, "color", "");
+        json_object_set_string_member (jobject, "licenseState", "");
+        json_object_set_string_member (jobject, "license", "");
+        json_object_set_double_member (jobject, "confidence", 1.0);
+      }
+      json_object_set_object_member (objectObj, "vehicle", jobject);
+      break;
+    case NVDS_OBJECT_TYPE_PERSON_EXT:
+      // person sub object
+      jobject = json_object_new ();
+
+      if (meta->extMsgSize) {
+        NvDsPersonObjectExt *dsObj = (NvDsPersonObjectExt *) meta->extMsg;
+        if (dsObj) {
+          json_object_set_int_member (jobject, "age", dsObj->age);
+          json_object_set_string_member (jobject, "gender", dsObj->gender);
+          json_object_set_string_member (jobject, "hair", dsObj->hair);
+          json_object_set_string_member (jobject, "cap", dsObj->cap);
+          json_object_set_string_member (jobject, "apparel", dsObj->apparel);
+          json_object_set_double_member (jobject, "confidence", meta->confidence);
+
+          objectMask = dsObj->mask;
+        }
+      } else {
+        // No person object in meta data. Attach empty person sub object.
+        json_object_set_int_member (jobject, "age", 0);
+        json_object_set_string_member (jobject, "gender", "");
+        json_object_set_string_member (jobject, "hair", "");
+        json_object_set_string_member (jobject, "cap", "");
+        json_object_set_string_member (jobject, "apparel", "");
+        json_object_set_double_member (jobject, "confidence", 1.0);
+      }
+      json_object_set_object_member (objectObj, "person", jobject);
+      break;
+    case NVDS_OBJECT_TYPE_FACE_EXT:
+      // face sub object
+      jobject = json_object_new ();
+
+      if (meta->extMsgSize) {
+        NvDsFaceObjectExt *dsObj = (NvDsFaceObjectExt *) meta->extMsg;
+        if (dsObj) {
+          json_object_set_int_member (jobject, "age", dsObj->age);
+          json_object_set_string_member (jobject, "gender", dsObj->gender);
+          json_object_set_string_member (jobject, "hair", dsObj->hair);
+          json_object_set_string_member (jobject, "cap", dsObj->cap);
+          json_object_set_string_member (jobject, "glasses", dsObj->glasses);
+          json_object_set_string_member (jobject, "facialhair", dsObj->facialhair);
+          json_object_set_string_member (jobject, "name", dsObj->name);
+          json_object_set_string_member (jobject, "eyecolor", dsObj->eyecolor);
+          json_object_set_double_member (jobject, "confidence", meta->confidence);
+
+          objectMask = dsObj->mask;
+        }
+      } else {
+        // No face object in meta data. Attach empty face sub object.
+        json_object_set_int_member (jobject, "age", 0);
+        json_object_set_string_member (jobject, "gender", "");
+        json_object_set_string_member (jobject, "hair", "");
+        json_object_set_string_member (jobject, "cap", "");
+        json_object_set_string_member (jobject, "glasses", "");
+        json_object_set_string_member (jobject, "facialhair", "");
+        json_object_set_string_member (jobject, "name", "");
+        json_object_set_string_member (jobject, "eyecolor", "");
+        json_object_set_double_member (jobject, "confidence", 1.0);
+      }
+      json_object_set_object_member (objectObj, "face", jobject);
+      break;
     case NVDS_OBJECT_TYPE_UNKNOWN:
       if(!meta->objectId) {
         break;
@@ -490,6 +580,26 @@ generate_object_object (NvDsMsg2pCtx *ctx, NvDsEventMsgMeta *meta)
   json_object_set_int_member (jobject, "bottomrighty", meta->bbox.top + meta->bbox.height);
   json_object_set_object_member (objectObj, "bbox", jobject);
 
+  if (objectMask) {
+    GList *l;
+    JsonArray *maskArray = json_array_sized_new (g_list_length(objectMask));
+
+    for (l = objectMask; l != NULL; l = l->next) {
+      GArray *polygon = (GArray *) l->data;
+      JsonArray *polygonArray = json_array_sized_new (polygon->len);
+
+      for (i = 0; i < polygon->len; i++) {
+        gdouble value = g_array_index (polygon, gdouble, i);
+
+        json_array_add_double_element (polygonArray, value);
+      }
+
+      json_array_add_array_element (maskArray, polygonArray);
+    }
+
+    json_object_set_array_member (objectObj, "maskoutline", maskArray);
+  }
+
   // signature sub array
   if (meta->objSignature.size) {
     JsonArray *jArray = json_array_sized_new (meta->objSignature.size);
@@ -506,44 +616,6 @@ generate_object_object (NvDsMsg2pCtx *ctx, NvDsEventMsgMeta *meta)
   json_object_set_double_member (jobject, "lon", meta->location.lon);
   json_object_set_double_member (jobject, "alt", meta->location.alt);
   json_object_set_object_member (objectObj, "location", jobject);
-
-  // coordinate sub object
-  jobject = json_object_new ();
-  json_object_set_double_member (jobject, "x", meta->coordinate.x);
-  json_object_set_double_member (jobject, "y", meta->coordinate.y);
-  json_object_set_double_member (jobject, "z", meta->coordinate.z);
-  json_object_set_object_member (objectObj, "coordinate", jobject);
-
-  return objectObj;
-}
-
-static JsonObject*
-generate_violation_object (NvDsMsg2pCtx *ctx, NvDsEventMsgMeta *meta)
-{
-  JsonObject *objectObj;
-  JsonObject *jobject;
-  gchar tracking_id[64];
-
-  // object object
-  objectObj = json_object_new ();
-  if (snprintf (tracking_id, sizeof(tracking_id), "%d", meta->trackingId)
-      >= (int) sizeof(tracking_id))
-    g_warning("Not enough space to copy trackingId");
-  json_object_set_string_member (objectObj, "id", tracking_id);
-  if (meta->objType == NVDS_OBJECT_TYPE_SD_VIOLATION) {
-    NvDsSDViolationObject *dsObj = (NvDsSDViolationObject *) meta->extMsg;
-    if (dsObj) {
-      json_object_set_int_member (objectObj, "violation_cluster_id", dsObj->violation_cluster_id);
-    }
-  }
-
-  // bbox sub object
-  jobject = json_object_new ();
-  json_object_set_int_member (jobject, "topleftx", meta->bbox.left);
-  json_object_set_int_member (jobject, "toplefty", meta->bbox.top);
-  json_object_set_int_member (jobject, "bottomrightx", meta->bbox.left + meta->bbox.width);
-  json_object_set_int_member (jobject, "bottomrighty", meta->bbox.top + meta->bbox.height);
-  json_object_set_object_member (objectObj, "bbox", jobject);
 
   // coordinate sub object
   jobject = json_object_new ();
@@ -632,6 +704,10 @@ object_enum_to_str (NvDsObjectType type, gchar* objectId)
       return "RoadSign";
     case NVDS_OBJECT_TYPE_CUSTOM:
       return "Custom";
+    case NVDS_OBJECT_TYPE_MAA_PERSON:
+      return "Person";
+    case NVDS_OBJECT_TYPE_MAA_TEXT:
+      return "Text";
     case NVDS_OBJECT_TYPE_UNKNOWN:
       return objectId ? objectId : "Unknown";
     default:
@@ -665,6 +741,32 @@ sensor_id_to_str (NvDsMsg2pCtx *ctx, gint sensorId)
         << " in configuration file" << endl;
     return NULL;
   }
+}
+
+static void
+generate_mask_array (NvDsEventMsgMeta *meta, JsonArray *jArray, GList *mask)
+{
+  unsigned int i;
+  GList *l;
+  stringstream ss;
+  bool started = false;
+
+  ss << meta->trackingId << "|" << g_list_length(mask);
+
+  for (l = mask; l != NULL; l = l->next) {
+    GArray *polygon = (GArray *) l->data;
+
+    if (started)
+      ss << "|#";
+
+    started = true;
+
+    for (i = 0; i < polygon->len; i++) {
+      gdouble value = g_array_index (polygon, gdouble, i);
+      ss << "|" << value;
+    }
+  }
+  json_array_add_string_element (jArray, ss.str().c_str());
 }
 
 static gchar*
@@ -702,12 +804,16 @@ generate_deepstream_message_minimal (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint
   JsonNode *rootNode;
   JsonObject *jobject;
   JsonArray *jArray;
+  JsonArray *maskArray = NULL;
   guint i;
   stringstream ss;
   gchar *message = NULL;
 
   jArray = json_array_new ();
+
   for (i = 0; i < size; i++) {
+    GList *objectMask = NULL;
+
     ss.str("");
     ss.clear();
 
@@ -747,10 +853,53 @@ generate_deepstream_message_minimal (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint
           }
         }
           break;
+        case NVDS_OBJECT_TYPE_VEHICLE_EXT: {
+          NvDsVehicleObjectExt *dsObj = (NvDsVehicleObjectExt *) meta->extMsg;
+          if (dsObj) {
+            ss << "|#|" << to_str(dsObj->type) << "|" << to_str(dsObj->make) << "|"
+               << to_str(dsObj->model) << "|" << to_str(dsObj->color) << "|" << to_str(dsObj->license)
+               << "|" << to_str(dsObj->region) << "|" << meta->confidence;
+
+            if (dsObj->mask)
+              objectMask = dsObj->mask;
+          }
+        }
+          break;
+        case NVDS_OBJECT_TYPE_PERSON_EXT: {
+          NvDsPersonObjectExt *dsObj = (NvDsPersonObjectExt *) meta->extMsg;
+          if (dsObj) {
+            ss << "|#|" << to_str(dsObj->gender) << "|" << dsObj->age << "|"
+                << to_str(dsObj->hair) << "|" << to_str(dsObj->cap) << "|" << to_str(dsObj->apparel)
+                << "|" << meta->confidence;
+
+            if (dsObj->mask)
+              objectMask = dsObj->mask;
+          }
+        }
+          break;
+        case NVDS_OBJECT_TYPE_FACE_EXT: {
+          NvDsFaceObjectExt *dsObj = (NvDsFaceObjectExt *) meta->extMsg;
+          if (dsObj) {
+            ss << "|#|" << to_str(dsObj->gender) << "|" << dsObj->age << "|"
+                << to_str(dsObj->hair) << "|" << to_str(dsObj->cap) << "|" << to_str(dsObj->glasses)
+                << "|" << to_str(dsObj->facialhair) << "|" << to_str(dsObj->name) << "|"
+                << "|" << to_str(dsObj->eyecolor) << "|" << meta->confidence;
+
+            if (dsObj->mask)
+              objectMask = dsObj->mask;
+          }
+        }
+          break;
         default:
           cout << "Object type (" << meta->objType << ") not implemented" << endl;
           break;
       }
+    }
+
+    if (objectMask) {
+      if (maskArray == NULL)
+        maskArray = json_array_new ();
+      generate_mask_array (meta, maskArray, objectMask);
     }
 
     json_array_add_string_element (jArray, ss.str().c_str());
@@ -773,6 +922,8 @@ generate_deepstream_message_minimal (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint
   }
 
   json_object_set_array_member (jobject, "objects", jArray);
+  if (maskArray && json_array_get_length (maskArray) > 0)
+    json_object_set_array_member (jobject, "masks", maskArray);
 
   rootNode = json_node_new (JSON_NODE_OBJECT);
   json_node_set_object (rootNode, jobject);
@@ -785,7 +936,7 @@ generate_deepstream_message_minimal (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint
 }
 
 static gchar*
-generate_deepstream_message_social_distancing (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint size)
+generate_deepstream_message_media_analytics_app (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint size)
 {
   /*
   The JSON structure of the frame
@@ -795,23 +946,78 @@ generate_deepstream_message_social_distancing (NvDsMsg2pCtx *ctx, NvDsEvent *eve
    "@timestamp": "2018-04-11T04:59:59.828Z",
    "sensorId": "sensor-id",
    "objects": [
-      ".......object-1 {}...........",
-      ".......object-2 {}...........",
-      ".......object-3 {}..........."
+      ".......object-1 attributes...........",
+      ".......object-2 attributes...........",
+      ".......object-3 attributes..........."
     ]
   }
   */
+
+  /*
+  An example object with Vehicle object-type
+  {
+    "version": "4.0",
+    "id": "frame-id",
+    "@timestamp": "2018-04-11T04:59:59.828Z",
+    "sensorId": "sensor-id",
+    "objects": [
+        "957|1834|150|1918|215|Vehicle|#|sedan|Bugatti|M|blue|CA 444|California|0.8",
+        "..........."
+    ]
+  }
+   */
+
   JsonNode *rootNode;
   JsonObject *jobject;
   JsonArray *jArray;
+  JsonArray *maskArray = NULL;
   guint i;
   stringstream ss;
   gchar *message = NULL;
 
   jArray = json_array_new ();
+
   for (i = 0; i < size; i++) {
-    JsonObject *objectObj = generate_violation_object (ctx, events[i].metadata);
-    json_array_add_object_element (jArray, objectObj);
+    GList *objectMask = NULL;
+
+    ss.str("");
+    ss.clear();
+
+    NvDsEventMsgMeta *meta = events[i].metadata;
+    ss << meta->trackingId << "|" << meta->bbox.left << "|" << meta->bbox.top
+        << "|" << meta->bbox.left + meta->bbox.width << "|" << meta->bbox.top + meta->bbox.height
+        << "|" << object_enum_to_str (meta->objType, meta->objectId);
+
+    if (meta->extMsg && meta->extMsgSize) {
+      // Attach secondary inference attributes.
+      switch (meta->objType) {
+        case NVDS_OBJECT_TYPE_MAA_PERSON: {
+          NvDsMAAPersonObject *dsObj = (NvDsMAAPersonObject *) meta->extMsg;
+          if (dsObj) {
+            ss << "|#|" << to_str(dsObj->name);
+          }
+        }
+          break;
+        case NVDS_OBJECT_TYPE_MAA_TEXT: {
+          NvDsMAATextObject *dsObj = (NvDsMAATextObject *) meta->extMsg;
+          if (dsObj) {
+            ss << "|#|" << to_str(dsObj->content);
+          }
+        }
+          break;
+        default:
+          cout << "Object type (" << meta->objType << ") not implemented" << endl;
+          break;
+      }
+    }
+
+    if (objectMask) {
+      if (maskArray == NULL)
+        maskArray = json_array_new ();
+      generate_mask_array (meta, maskArray, objectMask);
+    }
+
+    json_array_add_string_element (jArray, ss.str().c_str());
   }
 
   // It is assumed that all events / objects are associated with same frame.
@@ -831,6 +1037,8 @@ generate_deepstream_message_social_distancing (NvDsMsg2pCtx *ctx, NvDsEvent *eve
   }
 
   json_object_set_array_member (jobject, "objects", jArray);
+  if (maskArray && json_array_get_length (maskArray) > 0)
+    json_object_set_array_member (jobject, "masks", maskArray);
 
   rootNode = json_node_new (JSON_NODE_OBJECT);
   json_node_set_object (rootNode, jobject);
@@ -1353,12 +1561,69 @@ void nvds_msg2p_ctx_destroy (NvDsMsg2pCtx *ctx)
   delete ctx;
 }
 
+NvDsPayload**
+nvds_msg2p_generate_multiple (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint eventSize,
+                     guint *payloadCount)
+{
+  gchar *message = NULL;
+  gint len = 0;
+  NvDsPayload **payloads = NULL;
+  *payloadCount = 0;
+  //Set how many payloads are being sent back to the plugin
+  payloads = (NvDsPayload **) g_malloc0 (sizeof (NvDsPayload*) * 1);
+
+  if (ctx->payloadType == NVDS_PAYLOAD_DEEPSTREAM) {
+    message = generate_schema_message (ctx, events->metadata);
+    if (message) {
+      payloads[*payloadCount]= (NvDsPayload *) g_malloc0 (sizeof (NvDsPayload));
+      len = strlen (message);
+      // Remove '\0' character at the end of string and just copy the content.
+      payloads[*payloadCount]->payload = g_memdup (message, len);
+      payloads[*payloadCount]->payloadSize = len;
+      ++(*payloadCount);
+      g_free (message);
+    }
+  } else if (ctx->payloadType == NVDS_PAYLOAD_DEEPSTREAM_MINIMAL) {
+    message = generate_deepstream_message_minimal (ctx, events, eventSize);
+    if (message) {
+      len = strlen (message);
+      payloads[*payloadCount] = (NvDsPayload *) g_malloc0 (sizeof (NvDsPayload));
+      // Remove '\0' character at the end of string and just copy the content.
+      payloads[*payloadCount]->payload = g_memdup (message, len);
+      payloads[*payloadCount]->payloadSize = len;
+      ++(*payloadCount);
+      g_free (message);
+    }
+  } else if (ctx->payloadType == NVDS_PAYLOAD_CUSTOM) {
+    payloads[*payloadCount] = (NvDsPayload *) g_malloc0 (sizeof (NvDsPayload));
+    payloads[*payloadCount]->payload = (gpointer) g_strdup ("CUSTOM Schema");
+    payloads[*payloadCount]->payloadSize = strlen ((char *)payloads[*payloadCount]->payload) + 1;
+    ++(*payloadCount);
+  } else if (ctx->payloadType == NVDS_PAYLOAD_MAA) {
+    message = generate_deepstream_message_media_analytics_app (ctx, events, eventSize);
+    if (message) {
+      len = strlen (message);
+      payloads[*payloadCount] = (NvDsPayload *) g_malloc0 (sizeof (NvDsPayload));
+      // Remove '\0' character at the end of string and just copy the content.
+      payloads[*payloadCount]->payload = g_memdup (message, len);
+      payloads[*payloadCount]->payloadSize = len;
+      ++(*payloadCount);
+      g_free (message);
+    }
+  } else {
+    payloads = NULL;
+  }
+
+  return payloads;
+}
+
 NvDsPayload*
 nvds_msg2p_generate (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint size)
 {
   gchar *message = NULL;
   gint len = 0;
   NvDsPayload *payload = (NvDsPayload *) g_malloc0 (sizeof (NvDsPayload));
+
   if (ctx->payloadType == NVDS_PAYLOAD_DEEPSTREAM) {
     message = generate_schema_message (ctx, events->metadata);
     if (message) {
@@ -1377,9 +1642,11 @@ nvds_msg2p_generate (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint size)
       payload->payloadSize = len;
       g_free (message);
     }
-  } else if (ctx->payloadType == NVDS_PAYLOAD_SD_VIOLATION) {
-
-    message = generate_deepstream_message_social_distancing (ctx, events, size);
+  } else if (ctx->payloadType == NVDS_PAYLOAD_CUSTOM) {
+    payload->payload = (gpointer) g_strdup ("CUSTOM Schema");
+    payload->payloadSize = strlen ((char *)payload->payload) + 1;
+  } else if (ctx->payloadType == NVDS_PAYLOAD_MAA) {
+    message = generate_deepstream_message_media_analytics_app (ctx, events, size);
     if (message) {
       len = strlen (message);
       // Remove '\0' character at the end of string and just copy the content.
@@ -1387,8 +1654,9 @@ nvds_msg2p_generate (NvDsMsg2pCtx *ctx, NvDsEvent *events, guint size)
       payload->payloadSize = len;
       g_free (message);
     }
-  } else
+  } else {
     payload->payload = NULL;
+  }
 
   return payload;
 }
