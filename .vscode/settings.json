@@ -1,7 +1,7 @@
 {
     "C_Cpp.errorSquiggles": "Enabled",
     "window.zoomLevel": 0,
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "terminal.integrated.scrollback": 10000000,
     "terminal.integrated.fontSize": 12,
     "python.linting.pylintArgs": [
@@ -19,8 +19,6 @@
     "prettier.useTabs": false,
     "files.trimTrailingWhitespace": true,
     "editor.rulers": [80],
-    "editor.wordWrap": "wordWrapColumn",
-    "editor.wordWrapColumn": 80,
     "cmake.configureOnOpen": false,
     "diffEditor.ignoreTrimWhitespace": false,
     "[cpp]": {
