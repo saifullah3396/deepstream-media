@@ -4,8 +4,8 @@ perf-measurement-interval-sec=5
 
 [tiled-display]
 enable=1
-rows=1
-columns=1
+rows=2
+columns=2
 gpu-id=0
 width=1280
 height=720
@@ -18,10 +18,10 @@ nvbuf-memory-type=0
 
 
 [source0]
-enable=0
-#Type - 1=CameraV4L2 2=URI 3=MultiURI 4=RTSP
+enable=1
+#Type - 1=CameraV4L2 2=URI 3=MultiURI 4=RTSP1
 type=3
-uri=file://./../../data/videos/youtube_hamid.mp4
+uri=file://./../../data/demo_vids/youtube_fox.mp4
 num-sources=1
 gpu-id=0
 nvbuf-memory-type=0
@@ -30,25 +30,25 @@ nvbuf-memory-type=0
 enable=1
 #Type - 1=CameraV4L2 2=URI 3=MultiURI 4=RTSP
 type=2
-uri=file://./../../data/videos/youtube_cnn.mp4
+uri=file://./../../data/demo_vids/youtube_fox2.mp4
 num-sources=1
 gpu-id=0
 nvbuf-memory-type=0
 
 [source2]
-enable=0
+enable=1
 #Type - 1=CameraV4L2 2=URI 3=MultiURI 4=RTSP
 type=2
-uri=file://./../../data/videos/youtube_pakistan.mp4
+uri=file://./../../data/demo_vids/youtube_CNN.mp4
 num-sources=1
 gpu-id=0
 nvbuf-memory-type=0
 
 [source3]
-enable=0
+enable=1
 #Type - 1=CameraV4L2 2=URI 3=MultiURI 4=RTSP
 type=2
-uri=file://./../../data/videos/youtube_trump.mp4
+uri=file://./../../data/demo_vids/youtube_CNN2.mp4
 num-sources=1
 gpu-id=0
 nvbuf-memory-type=0
@@ -56,7 +56,7 @@ nvbuf-memory-type=0
 [sink0]
 enable=1
 #Type - 1=FakeSink 2=EglSink 3=File
-type=2
+type=3
 sync=1
 source-id=0
 gpu-id=0
@@ -74,16 +74,16 @@ enable=1
 type=6
 msg-broker-proto-lib=/opt/nvidia/deepstream/deepstream/lib/libnvds_kafka_proto.so
 msg-broker-config=cfg_kafka.txt
-msg-broker-conn-str=localhost;9092;nvidia
+msg-broker-conn-str=10.12.42.157;9092;media_app_analytics
 msg-conv-config=msg_conv_config.txt
 msg-conv-payload-type=258
-topic=nvidia
+topic=media_app_analytics
 
 [osd]
 enable=1
 gpu-id=0
 border-width=1
-text-size=15
+text-size=8
 text-color=1;1;1;1;
 text-bg-color=0.3;0.3;0.3;1
 font=Serif
@@ -98,7 +98,7 @@ nvbuf-memory-type=0
 gpu-id=0
 ##Boolean property to inform muxer that sources are live
 live-source=0
-batch-size=1
+batch-size=4
 ##time out in usec, to wait after the first buffer is available
 ##to push the batch even if the complete batch is not formed
 batched-push-timeout=40000
@@ -115,7 +115,7 @@ nvbuf-memory-type=0
 enable=1
 gpu-id=0
 # Modify as necessary
-batch-size=1
+batch-size=4
 #Required by the app for OSD, not a plugin property
 bbox-border-color0=1;0;0;1
 bbox-border-color1=0;1;1;1
@@ -141,7 +141,7 @@ process-mode=2
 [secondary-gie1]
 enable=1
 gpu-id=0
-batch-size=1
+batch-size=4
 #Required by the app for OSD, not a plugin property
 bbox-border-color0=1;0;0;1
 bbox-border-color1=0;1;1;1
@@ -156,7 +156,7 @@ process-mode=1
 [secondary-gie2]
 enable=1
 gpu-id=0
-batch-size=1
+batch-size=4
 gie-unique-id=4
 operate-on-gie-id=3
 operate-on-class-ids=1;
@@ -165,9 +165,9 @@ process-mode=2
 
 # text recognition 2
 [secondary-gie3]
-enable=0
+enable=1
 gpu-id=0
-batch-size=1
+batch-size=4
 gie-unique-id=5
 operate-on-gie-id=3
 operate-on-class-ids=1;
@@ -176,9 +176,9 @@ process-mode=2
 
 # text recognition 3
 [secondary-gie4]
-enable=0
+enable=1
 gpu-id=0
-batch-size=1
+batch-size=4
 gie-unique-id=6
 operate-on-gie-id=3
 operate-on-class-ids=1;
