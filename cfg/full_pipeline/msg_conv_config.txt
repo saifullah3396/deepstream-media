@@ -8,12 +8,24 @@
 
 [sensor0]
 enable=1
-type=Livestream
-id=0
-description=News Channel 1
+type=Camera
+id=FOX_NEWS_1
+description=Fox News 1
 
 [sensor1]
 enable=1
-type=Livestream
-id=0
-description=News Channel 2
+type=Camera
+id=FOX_NEWS_2
+description=Fox News 2
+
+[sensor2]
+enable=1
+type=Camera
+id=CNN_NEWS_1
+description=CNN News 1
+
+[sensor3]
+enable=1
+type=Camera
+id=CNN_NEWS_2
+description=CNN News 2
