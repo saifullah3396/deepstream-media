@@ -160,7 +160,7 @@ batch-size=4
 gie-unique-id=4
 operate-on-gie-id=3
 operate-on-class-ids=1;
-config-file=../text_recognition/latin/sgie_config_496.txt
+config-file=../text_recognition/latin/sgie_config_248.txt
 process-mode=2
 
 # text recognition 2
@@ -171,7 +171,7 @@ batch-size=4
 gie-unique-id=5
 operate-on-gie-id=3
 operate-on-class-ids=1;
-config-file=../text_recognition/latin/sgie_config_1200.txt
+config-file=../text_recognition/latin/sgie_config_600.txt
 process-mode=2
 
 # text recognition 3
@@ -182,7 +182,7 @@ batch-size=4
 gie-unique-id=6
 operate-on-gie-id=3
 operate-on-class-ids=1;
-config-file=../text_recognition/latin/sgie_config_2560.txt
+config-file=../text_recognition/latin/sgie_config_1280.txt
 process-mode=2
 
 [tracker]
