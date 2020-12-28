@@ -54,14 +54,14 @@ offsets=127.0
 model-color-format=2
 model-engine-file=../../../models/text_recognition/latin/latin-1200.trt
 # .6 of 640
-input-object-min-width=193
-input-object-max-width=384
 ## 0=FP32, 1=INT8, 2=FP16 mode
 network-mode=2
 network-type=1
 # secondary
 num-detected-classes=1
-interval=10
+interval=0
+#input-object-min-width-height-ratio=7.75
+input-object-max-width-height-ratio=18.75
 maintain-aspect-ratio-fixed-height=1
 infer-dims=1;64;1200
 output-blob-names=scores

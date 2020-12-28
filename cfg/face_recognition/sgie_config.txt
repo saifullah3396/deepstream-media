@@ -17,6 +17,7 @@ model-color-format=0
 network-mode=2
 num-detected-classes=1
 network-type=1
+interval=0
 secondary-reinfer-interval=5
 #output-blob-names=global_average_pooling2d_1/Mean
 offsets=91.4953;103.8827;131.0912
