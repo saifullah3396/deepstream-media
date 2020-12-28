@@ -76,6 +76,17 @@ def main():
         }
         model_name = './{}/{}-{}.onnx'.format(
             weights_file_dir, weights_file, input_shape[3])
+    elif args.model == 'text_recognition/arabic':
+        from models.text_recognition.model import Model
+        N_ARABIC_CHARS = 185
+        model = Model(1, 512, 512, N_ARABIC_CHARS)
+        output_names = ['scores']
+        # batch and width can be dynamic
+        dynamic_axis = {
+            'input': {0: 'batch'},
+        }
+        model_name = './{}/{}-{}.onnx'.format(
+            weights_file_dir, weights_file, input_shape[3])
     else:
         print('{} model is not supported.'.format(args.model))
         exit(1)
