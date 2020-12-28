@@ -427,6 +427,18 @@ cb_newpad3 (GstElement * decodebin, GstPad * pad, gpointer data)
   }
 }
 
+static void
+cb_newpad4 (GstElement * demuxer, GstPad * pad, gpointer data)
+{
+  NvDsSrcBin *bin = (NvDsSrcBin *) data;
+  GstPad *sinkpad = gst_element_get_static_pad (bin->decodebin, "sink");
+  if (gst_pad_link (pad, sinkpad) != GST_PAD_LINK_OK) {
+
+    NVGSTDS_ERR_MSG_V ("Failed to link demuxer loader to dec_que");
+  }
+  gst_object_unref (sinkpad);
+}
+
 /* Returning FALSE from this callback will make rtspsrc ignore the stream.
  * Ignore audio and add the proper depay element based on codec. */
 static gboolean
@@ -967,6 +979,105 @@ done:
   return ret;
 }
 
+//! hlsdemux ! tsdemux name=mux mux. ! "video/x-h264,framerate=25/1" !
+static gboolean
+create_hls_src_bin (NvDsSourceConfig * config, NvDsSrcBin * bin)
+{
+  gboolean ret = FALSE;
+  gchar elem_name[50];
+  bin->config = config;
+  GstCaps *caps = NULL;
+  GstCapsFeatures *feature = NULL;
+
+  bin->latency = config->latency;
+
+  g_snprintf (elem_name, sizeof (elem_name), "src_elem%d", bin->bin_id);
+  bin->src_elem = gst_element_factory_make ("souphttpsrc", elem_name);
+  if (!bin->src_elem) {
+    NVGSTDS_ERR_MSG_V ("Failed to create '%s'", elem_name);
+    goto done;
+  }
+
+  bin->hls_demux = gst_element_factory_make ("hlsdemux", "hlsdemux_elem");
+  if (!bin->hls_demux) {
+    NVGSTDS_ERR_MSG_V ("Failed to create '%s'", "hlsdemux_elem");
+    goto done;
+  }
+
+  g_object_set (G_OBJECT (bin->src_elem), "location", config->uri, NULL);
+  g_object_set (G_OBJECT (bin->src_elem), "is-live", config->live_source, NULL);
+
+  g_snprintf (elem_name, sizeof (elem_name), "dec_que%d", bin->bin_id);
+  bin->dec_que = gst_element_factory_make ("queue", elem_name);
+  if (!bin->dec_que) {
+    NVGSTDS_ERR_MSG_V ("Failed to create '%s'", elem_name);
+    goto done;
+  }
+
+  g_snprintf (elem_name, sizeof (elem_name), "decodebin_elem%d", bin->bin_id);
+  bin->decodebin = gst_element_factory_make ("decodebin", elem_name);
+  if (!bin->decodebin) {
+    NVGSTDS_ERR_MSG_V ("Failed to create '%s'", elem_name);
+    goto done;
+  }
+
+  g_signal_connect (G_OBJECT (bin->decodebin), "pad-added",
+      G_CALLBACK (cb_newpad2), bin);
+  g_signal_connect (G_OBJECT (bin->decodebin), "child-added",
+      G_CALLBACK (decodebin_child_added), bin);
+
+  g_snprintf (elem_name, sizeof (elem_name), "src_que%d", bin->bin_id);
+  bin->cap_filter = gst_element_factory_make (NVDS_ELEM_QUEUE, elem_name);
+  if (!bin->cap_filter) {
+    NVGSTDS_ERR_MSG_V ("Failed to create '%s'", elem_name);
+    goto done;
+  }
+
+  g_mutex_init (&bin->bin_lock);
+  g_snprintf(elem_name, sizeof(elem_name), "nvvidconv_elem%d", bin->bin_id);
+  bin->nvvidconv = gst_element_factory_make(NVDS_ELEM_VIDEO_CONV, elem_name);
+  if (!bin->nvvidconv)
+  {
+    NVGSTDS_ERR_MSG_V("Could not create element 'nvvidconv_elem'");
+    goto done;
+  }
+  caps = gst_caps_new_empty_simple("video/x-raw");
+  feature = gst_caps_features_new("memory:NVMM", NULL);
+  gst_caps_set_features(caps, 0, feature);
+
+  bin->cap_filter1 =
+      gst_element_factory_make(NVDS_ELEM_CAPS_FILTER, "src_cap_filter_nvvidconv");
+  if (!bin->cap_filter1)
+  {
+    NVGSTDS_ERR_MSG_V("Could not create 'cap_filter'");
+    goto done;
+  }
+
+  g_object_set(G_OBJECT(bin->cap_filter1), "caps", caps, NULL);
+  gst_caps_unref(caps);
+  gst_bin_add_many(GST_BIN(bin->bin), bin->src_elem, bin->hls_demux, bin->dec_que,
+    bin->decodebin, bin->cap_filter, bin->nvvidconv, bin->cap_filter1, NULL);
+
+  NVGSTDS_LINK_ELEMENT (bin->src_elem, bin->hls_demux);
+  g_signal_connect (G_OBJECT (bin->hls_demux), "pad-added",
+    G_CALLBACK (cb_newpad4), bin);
+  NVGSTDS_LINK_ELEMENT (bin->cap_filter, bin->nvvidconv);
+  NVGSTDS_LINK_ELEMENT (bin->nvvidconv, bin->cap_filter1);
+  NVGSTDS_BIN_ADD_GHOST_PAD (bin->bin, bin->cap_filter1, "src");
+  ret = TRUE;
+
+  g_timeout_add (1000, watch_source_status, bin);
+
+  GST_CAT_DEBUG (NVDS_APP,
+      "Decode bin created. Waiting for a new pad from decodebin to link");
+done:
+
+  if (!ret) {
+    NVGSTDS_ERR_MSG_V ("%s failed", __func__);
+  }
+  return ret;
+}
+
 gboolean
 create_source_bin (NvDsSourceConfig * config, NvDsSrcBin * bin)
 {
@@ -995,6 +1106,11 @@ create_source_bin (NvDsSourceConfig * config, NvDsSrcBin * bin)
       if (!create_rtsp_src_bin (config, bin)) {
         return FALSE;
       }
+      break;
+    case NV_DS_SOURCE_HLS:
+        if (!create_hls_src_bin (config, bin)) {
+          return FALSE;
+        }
       break;
     default:
       NVGSTDS_ERR_MSG_V ("Source type not yet implemented!\n");
@@ -1065,6 +1181,11 @@ create_multi_source_bin (guint num_sub_bins, NvDsSourceConfig * configs,
         break;
       case NV_DS_SOURCE_RTSP:
         if (!create_rtsp_src_bin (&configs[i], &bin->sub_bins[i])) {
+          return FALSE;
+        }
+        break;
+      case NV_DS_SOURCE_HLS:
+        if (!create_hls_src_bin (&configs[i], &bin->sub_bins[i])) {
           return FALSE;
         }
         break;

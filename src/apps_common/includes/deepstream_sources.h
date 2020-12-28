@@ -38,7 +38,8 @@ typedef enum
   NV_DS_SOURCE_URI,
   NV_DS_SOURCE_URI_MULTIPLE,
   NV_DS_SOURCE_RTSP,
-  NV_DS_SOURCE_CAMERA_CSI
+  NV_DS_SOURCE_CAMERA_CSI,
+  NV_DS_SOURCE_HLS
 } NvDsSourceType;
 
 typedef struct
@@ -97,6 +98,8 @@ typedef struct
   GstElement *fakesink_queue;
   GstElement *fakesink;
   GstElement *nvvidconv;
+  GstElement *hls_demux;
+  GstElement *ts_demux;
   gboolean do_record;
   guint64 pre_event_rec;
   GMutex bin_lock;
@@ -106,6 +109,7 @@ typedef struct
   struct timeval last_reconnect_time;
   gulong src_buffer_probe;
   gulong rtspsrc_monitor_probe;
+  gulong hlssrc_monitor_probe;
   gpointer bbox_meta;
   GstBuffer *inbuf;
   gchar *location;
