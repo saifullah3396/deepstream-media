@@ -1302,7 +1302,7 @@ int main(int argc, char *argv[])
     guint i;
     OTAInfo *otaInfo = NULL;
 
-    ctx = g_option_context_new("Nvidia DeepStream Test5");
+    ctx = g_option_context_new("Media Analytics Application");
     group = g_option_group_new("abc", NULL, NULL, NULL, NULL);
     g_option_group_add_entries(group, entries);
 
