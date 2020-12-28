@@ -110,10 +110,10 @@ extern "C" bool NvDsInferParseCraft(
             int sy = y - niter;
             int ey = y + h + niter + 1;
 
-            cv::min(sx, 0);
-            cv::min(sy, 0);
-            cv::max(ex, gridW);
-            cv::max(ey, gridH);
+            sx = cv::max(0, sx);
+            sy = cv::max(0, sy);
+            ex = cv::min(ex, gridW);
+            ey = cv::min(ey, gridH);
             auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(1 + niter, 1 + niter));
 
             auto roiRect = cv::Rect(cv::Point(sx, sy), cv::Point(ex, ey));
@@ -166,6 +166,10 @@ extern "C" bool NvDsInferParseCraft(
                 boxRect.height *= ratioH;
             }
             bboxes.push_back(boxRect);
+        }
+
+        if (bboxes.empty()) {
+            return true;
         }
 
         // create horizontal lists as done in easyocr but only considering
