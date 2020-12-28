@@ -244,6 +244,8 @@ struct _GstNvInfer
   guint min_input_object_height;
   guint max_input_object_width;
   guint max_input_object_height;
+  gdouble min_input_object_width_height_ratio;
+  gdouble max_input_object_width_height_ratio;
 
   /** Source GIE ID and class-id based filtering parameters for object processing mode. */
   gint operate_on_gie_id;

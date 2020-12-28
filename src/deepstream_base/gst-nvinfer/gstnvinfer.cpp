@@ -14,6 +14,7 @@
 #include <sys/time.h>
 #include <cassert>
 #include <condition_variable>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <list>
@@ -1152,12 +1153,16 @@ get_converted_buffer(GstNvInfer *nvinfer, NvBufSurface *src_surf,
      * the aspect ratio. */
         double hdest = dest_frame->height;
         double wdest = dest_frame->height * src_width / (double)src_height;
+
         int pixel_size;
         cudaError_t cudaReturn;
 
         if (wdest <= dest_frame->width)
         {
             dest_width = wdest;
+            dest_height = dest_frame->height;
+        } else {
+            dest_width = dest_frame->width;
             dest_height = dest_frame->height;
         }
 
@@ -1544,23 +1549,35 @@ should_infer_object(GstNvInfer *nvinfer, GstBuffer *inbuf,
                     NvDsObjectMeta *obj_meta, gulong frame_num,
                     GstNvInferObjectHistory *history)
 {
+    guint src_width = GST_ROUND_DOWN_2((unsigned int)obj_meta->rect_params.width);
+    guint src_height = GST_ROUND_DOWN_2((unsigned int)obj_meta->rect_params.height);
     if (nvinfer->operate_on_gie_id > -1 &&
         obj_meta->unique_component_id != nvinfer->operate_on_gie_id)
         return FALSE;
 
-    if (obj_meta->rect_params.width < nvinfer->min_input_object_width)
+    if (src_width < nvinfer->min_input_object_width)
         return FALSE;
 
-    if (obj_meta->rect_params.height < nvinfer->min_input_object_height)
+    if (src_height < nvinfer->min_input_object_height)
         return FALSE;
 
     if (nvinfer->max_input_object_width > 0 &&
-        obj_meta->rect_params.width > nvinfer->max_input_object_width)
+        src_width > nvinfer->max_input_object_width)
         return FALSE;
 
     if (nvinfer->max_input_object_height > 0 &&
-        obj_meta->rect_params.height > nvinfer->max_input_object_height)
+        src_height > nvinfer->max_input_object_height)
         return FALSE;
+
+    float width_height_ratio = src_width / (float) src_height;
+    if (nvinfer->min_input_object_width_height_ratio > 0 &&
+        width_height_ratio < nvinfer->min_input_object_width_height_ratio)
+        return FALSE;
+
+    if (nvinfer->max_input_object_width_height_ratio > 0 &&
+        width_height_ratio > nvinfer->max_input_object_width_height_ratio) {
+        return FALSE;
+    }
 
     /* Infer on object if the operate_on_class_ids list is empty or if
    * the flag at index  class_id is TRUE. */

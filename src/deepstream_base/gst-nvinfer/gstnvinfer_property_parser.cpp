@@ -422,6 +422,28 @@ gst_nvinfer_parse_other_attribute (GstNvInfer * nvinfer,
           nvinfer->max_input_object_height);
       goto done;
     }
+  } else if (!g_strcmp0 (key, CONFIG_GROUP_INFER_INPUT_OBJECT_MIN_WIDTH_HEIGHT_RATIO)) {
+    nvinfer->min_input_object_width_height_ratio = g_key_file_get_double (key_file,
+        group_name, CONFIG_GROUP_INFER_INPUT_OBJECT_MIN_WIDTH_HEIGHT_RATIO,
+        &error);
+    CHECK_ERROR (error);
+    if ((gdouble) nvinfer->min_input_object_width_height_ratio < 0) {
+      g_printerr ("Error: Negative value specified for %s(%d)\n",
+          CONFIG_GROUP_INFER_INPUT_OBJECT_MIN_WIDTH_HEIGHT_RATIO,
+          nvinfer->max_input_object_height);
+      goto done;
+    }
+  } else if (!g_strcmp0 (key, CONFIG_GROUP_INFER_INPUT_OBJECT_MAX_WIDTH_HEIGHT_RATIO)) {
+    nvinfer->max_input_object_width_height_ratio = g_key_file_get_double (key_file,
+        group_name, CONFIG_GROUP_INFER_INPUT_OBJECT_MAX_WIDTH_HEIGHT_RATIO,
+        &error);
+    CHECK_ERROR (error);
+    if ((gdouble) nvinfer->max_input_object_width_height_ratio < 0) {
+      g_printerr ("Error: Negative value specified for %s(%d)\n",
+          CONFIG_GROUP_INFER_INPUT_OBJECT_MAX_WIDTH_HEIGHT_RATIO,
+          nvinfer->max_input_object_height);
+      goto done;
+    }
   } else if (!g_strcmp0 (key, CONFIG_GROUP_INFER_GIE_ID_FOR_OPERATION)) {
     if ((*nvinfer->is_prop_set)[PROP_OPERATE_ON_GIE_ID] ||
         (*nvinfer->is_prop_set)[PROP_OPERATE_ON_CLASS_IDS])

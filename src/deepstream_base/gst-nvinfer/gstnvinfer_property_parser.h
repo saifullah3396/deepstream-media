@@ -115,6 +115,8 @@
 #define CONFIG_GROUP_INFER_INPUT_OBJECT_MIN_HEIGHT "input-object-min-height"
 #define CONFIG_GROUP_INFER_INPUT_OBJECT_MAX_WIDTH "input-object-max-width"
 #define CONFIG_GROUP_INFER_INPUT_OBJECT_MAX_HEIGHT "input-object-max-height"
+#define CONFIG_GROUP_INFER_INPUT_OBJECT_MIN_WIDTH_HEIGHT_RATIO "input-object-min-width-height-ratio"
+#define CONFIG_GROUP_INFER_INPUT_OBJECT_MAX_WIDTH_HEIGHT_RATIO "input-object-max-width-height-ratio"
 
 /** Parameters for filtering objects based on class-id and unique id of the
     detector when operating in secondary mode. */
