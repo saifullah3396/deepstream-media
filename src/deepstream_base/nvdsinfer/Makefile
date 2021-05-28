@@ -29,7 +29,8 @@ LIB_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/
 
 CFLAGS+= -fPIC -Wno-deprecated-declarations -std=c++14 \
 	 -I /usr/local/cuda-$(CUDA_VER)/include \
-	 -I ../includes -DNDEBUG -I$(TENSOR_RT)/include
+	 -I ../includes -DNDEBUG -I$(TENSOR_RT)/include \
+	  -Wall  -Ofast
 
 ifeq ($(shell uname -m), aarch64)
 CFLAGS+=-I/usr/include/opencv4

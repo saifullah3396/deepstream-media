@@ -1,7 +1,7 @@
 {
     "C_Cpp.errorSquiggles": "Enabled",
     "window.zoomLevel": 0,
-    "editor.formatOnSave": false,
+    "editor.formatOnSave": true,
     "terminal.integrated.scrollback": 10000000,
     "terminal.integrated.fontSize": 12,
     "python.linting.pylintArgs": [
@@ -98,6 +98,8 @@
         "hash_set": "cpp",
         "*.ipp": "cpp",
         "*.cuh": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "forward_list": "cpp",
+        "regex": "cpp"
     }
 }

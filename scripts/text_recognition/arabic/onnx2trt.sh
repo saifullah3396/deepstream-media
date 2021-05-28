@@ -8,21 +8,21 @@ FILE="$(basename $PATH_TO_FILE)"
 # generate 3 different models for 3 different sized inputs for text recognition
 $TENSOR_RT/bin/trtexec --fp16 --explicitBatch \
     --workspace=256 \
-    --onnx="${DIR}/${FILE%.*}-248.onnx" --saveEngine="${DIR}/${FILE%.*}-248.trt" \
-    --minShapes=\'input\':"1x1x32x248" \
-    --optShapes=\'input\':"4x1x32x248" \
-    --maxShapes=\'input\':"8x1x32x248"
+    --onnx="${DIR}/${FILE%.*}-496.onnx" --saveEngine="${DIR}/${FILE%.*}-496.trt" \
+    --minShapes=\'input\':"1x1x64x496" \
+    --optShapes=\'input\':"4x1x64x496" \
+    --maxShapes=\'input\':"8x1x64x496"
 
 $TENSOR_RT/bin/trtexec --fp16 --explicitBatch \
     --workspace=256 \
-    --onnx="${DIR}/${FILE%.*}-600.onnx" --saveEngine="${DIR}/${FILE%.*}-600.trt" \
-    --minShapes=\'input\':"1x1x32x600" \
-    --optShapes=\'input\':"4x1x32x600" \
-    --maxShapes=\'input\':"8x1x32x600"
+    --onnx="${DIR}/${FILE%.*}-1200.onnx" --saveEngine="${DIR}/${FILE%.*}-1200.trt" \
+    --minShapes=\'input\':"1x1x64x1200" \
+    --optShapes=\'input\':"4x1x64x1200" \
+    --maxShapes=\'input\':"8x1x64x1200"
 
 $TENSOR_RT/bin/trtexec --fp16 --explicitBatch \
     --workspace=256 \
-    --onnx="${DIR}/${FILE%.*}-1280.onnx" --saveEngine="${DIR}/${FILE%.*}-1280.trt" \
-    --minShapes=\'input\':"1x1x32x1280" \
-    --optShapes=\'input\':"4x1x32x1280" \
-    --maxShapes=\'input\':"8x1x32x1280"
+    --onnx="${DIR}/${FILE%.*}-2560.onnx" --saveEngine="${DIR}/${FILE%.*}-2560.trt" \
+    --minShapes=\'input\':"1x1x64x2560" \
+    --optShapes=\'input\':"4x1x64x2560" \
+    --maxShapes=\'input\':"8x1x64x2560"

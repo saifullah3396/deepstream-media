@@ -18,9 +18,9 @@ NVDS_VERSION:=5.0
 
 LIB_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/
 
-CFLAGS:= -Wall -std=c++11 -shared -fPIC
+CFLAGS:= -Wall -std=c++11 -shared -fPIC -Ofast
 
-CFLAGS+= -I../includes
+CFLAGS+= -I../includes 
 
 CFLAGS+= `pkg-config --cflags $(PKGS)`
 LIBS:= `pkg-config --libs $(PKGS)`

@@ -1,7 +1,7 @@
 DEEPSTREAM_PATH=/opt/nvidia/deepstream/deepstream
 CC:= g++
 
-CFLAGS:= -Wall -std=c++11 -O2 -s -DNDEBUG
+CFLAGS:= -Wall -std=c++11  -Ofast -s 
 
 CFLAGS+= -shared -fPIC # -DDEBUG
 

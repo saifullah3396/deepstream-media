@@ -24,7 +24,9 @@ NVDS_VERSION:=5.0
 CFLAGS+= -fPIC -std=c++11 -DDS_VERSION=\"5.0.0\" \
 	 -I /usr/local/cuda-$(CUDA_VER)/include \
 	 -I ../includes \
-	 -I ../nvdsinfer -DNDEBUG -I$(TENSOR_RT)/include
+	 -I ../nvdsinfer -DNDEBUG -I$(TENSOR_RT)/include \
+	 -I $($TENSOR_RT)/include \
+	  -Wall -std=c++11  -Ofast
 
 GST_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/gst-plugins/
 LIB_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/

@@ -1367,6 +1367,16 @@ convert_batch_and_push_to_input_thread(GstNvInfer *nvinfer,
 
     if (err != NvBufSurfTransformError_Success)
     {
+        // std::cout << "batch->frames:" << batch->frames.size() << std::endl;
+        // for (int i = 0; i < batch->frames.size(); ++i) {
+        //     auto frame = batch->frames[i];
+        //     std::cout << "scale_ratio_x:" << frame.scale_ratio_x << std::endl;
+        //     std::cout << "scale_ratio_y:" << frame.scale_ratio_y << std::endl;
+        //     std::cout << "left:" << frame.obj_meta->rect_params.left << std::endl;
+        //     std::cout << "top:" << frame.obj_meta->rect_params.top << std::endl;
+        //     std::cout << "width:" << frame.obj_meta->rect_params.width << std::endl;
+        //     std::cout << "height:" << frame.obj_meta->rect_params.height << std::endl;
+        // }
         GST_ELEMENT_ERROR(nvinfer, STREAM, FAILED,
                           ("NvBufSurfTransform failed with error %d while converting buffer", err),
                           (NULL));
@@ -1821,6 +1831,8 @@ gst_nvinfer_process_objects(GstNvInfer *nvinfer, GstBuffer *inbuf,
             idx = batch->frames.size();
 
             /* Crop, scale and convert the buffer. */
+            object_meta->rect_params.left = std::max(object_meta->rect_params.left, 0.f);
+            object_meta->rect_params.top = std::max(object_meta->rect_params.top, 0.f);
             if (get_converted_buffer(nvinfer, in_surf,
                                      in_surf->surfaceList + frame_meta->batch_id,
                                      &object_meta->rect_params, memory->surf,
@@ -1870,7 +1882,6 @@ gst_nvinfer_process_objects(GstNvInfer *nvinfer, GstBuffer *inbuf,
      * intermediate memory to pool. */
         if (batch->frames.size() == 0)
             gst_buffer_unref(batch->conv_buf);
-
         if (!convert_batch_and_push_to_input_thread(nvinfer, batch.get(), memory))
         {
             return GST_FLOW_ERROR;

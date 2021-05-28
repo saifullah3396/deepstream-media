@@ -22,7 +22,8 @@ LIB_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/
 
 CFLAGS+= -fPIC -DDS_VERSION=\"5.0.0\" \
 	 -I../includes \
-	 -I../nvmsgconv/
+	 -I../nvmsgconv/ \
+	 -Wall -std=c++11  -Ofast
 
 LIBS := -shared -Wl,-no-undefined
 LIBS+= -L$(LIB_INSTALL_DIR) -lnvdsgst_helper -lnvds_meta -lnvds_msgconv -ldl \

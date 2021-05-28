@@ -1,17 +1,24 @@
 DEEPSTREAM_PATH=/opt/nvidia/deepstream/deepstream
 CC:= g++
 
-CFLAGS:= -Wall -std=c++11
+CFLAGS:= -std=c++11 -g -Ofast
 
-CFLAGS+= -shared -fPIC # -DDEBUG
+CFLAGS+= -shared -fPIC
 
-CFLAGS+= -I${DEEPSTREAM_PATH}/sources/includes -I${TENSOR_RT}/include
+CFLAGS+= -I${DEEPSTREAM_PATH}/sources/includes \
+			-I${TENSOR_RT}/include \
+			-I./sym_spell_cpp/include \
+			-I/usr/local/include/kenlm
 
-LIBS:= -lnvinfer -lnvparsers -lopencv_core -lopencv_imgproc -lopencv_calib3d \
-	-L${TENSOR_RT}/lib -ljsoncpp
-LFLAGS:= -Wl,--start-group $(LIBS) -Wl,--end-group
+LIBS:= \
+	-L/usr/lib/x86_64-linux-gnu/ -L${TENSOR_RT}/lib -L/usr/local/lib/ \
+	-lnvinfer -lnvparsers -lopencv_core -lopencv_imgproc -lopencv_calib3d \
+	-ljsoncpp -lfst -lkenlm -lkenlm_util -lbz2 -llzma -lpthread -lz \
+	-lsym_spell_cpp -lctc_decoder
 
-SRCFILES:= nvdsinfer_classifier.cpp
+LFLAGS:= -Wl,--start-group $(LIBS) -Wl,--end-group -rdynamic
+
+SRCFILES:= ./*.cpp
 TARGET_LIB:= libnvdsinfer_classifier.so
 
 all: $(TARGET_LIB)

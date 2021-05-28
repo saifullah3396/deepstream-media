@@ -51,17 +51,22 @@ CFLAGS+= \
 		-I../apps_common/includes \
 		-I$(DEEPSTREAM_SOURCES)/includes \
 		-DDS_VERSION_MINOR=0 \
-		-DDS_VERSION_MAJOR=5
+		-DDS_VERSION_MAJOR=5 \
+		-I/usr/local/include/kenlm -I/usr/local/include \
+		-Wall -std=c++11  -Ofast
 CXXFLAGS+= \
 		-I../apps_common/includes \
 		-I$(DEEPSTREAM_SOURCES)/includes \
 		-DDS_VERSION_MINOR=0 \
-		-DDS_VERSION_MAJOR=5
+		-DDS_VERSION_MAJOR=5 \
+		-I/usr/local/include/kenlm -I/usr/local/include \
+		-Wall -std=c++11  -Ofast
 
 LIBS+= -L$(LIB_INSTALL_DIR) \
 		-lnvdsgst_meta -lnvds_meta -lnvdsgst_helper -lnvdsgst_smartrecord \
 		-lnvds_utils -lm -lgstrtspserver-1.0 -ljsoncpp -lopencv_core \
-		-lopencv_imgproc -lopencv_calib3d -ldl -Wl,-rpath,$(LIB_INSTALL_DIR)
+		-lopencv_imgproc -lopencv_calib3d -ldl -Wl,-rpath,$(LIB_INSTALL_DIR) -L/usr/lib/x86_64-linux-gnu/ \
+		-L/usr/local/lib/ -lfst -lkenlm -lkenlm_util -lbz2 -llzma -lpthread -lz
 
 CFLAGS+= `pkg-config --cflags $(PKGS)`
 CXXFLAGS+= `pkg-config --cflags $(PKGS)`
