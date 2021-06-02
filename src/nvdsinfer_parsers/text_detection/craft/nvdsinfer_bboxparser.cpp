@@ -71,13 +71,6 @@ extern "C" bool NvDsInferParseCraft(
         float *scoresBuffer = (float *)outputLayersInfo[scoresLayerIndex].buffer;
         auto textMap = cv::Mat(cv::Size(gridW, gridH), CV_32FC1, scoresBuffer);
         auto linkMap = cv::Mat(cv::Size(gridW, gridH), CV_32FC1, scoresBuffer + gridW * gridH);
-        cv::Mat Temp;
-        textMap.convertTo(Temp, CV_8UC1);
-        std::cout << "textMap:" << textMap << std::endl;
-        cv::imwrite("textMap1.png", Temp);
-        cv::Mat Temp2;
-        linkMap.convertTo(Temp2, CV_8UC1);
-        cv::imwrite("linkMap1.png", Temp2);
         cv::Mat textScore, linkScore;
         cv::threshold(textMap, textScore, LOW_TEXT_THRESHOLD, 1, 0);
         cv::threshold(linkMap, linkScore, LINK_THRESHOLD, 1, 0);
@@ -156,11 +149,6 @@ extern "C" bool NvDsInferParseCraft(
                 boxRect.y *= ratioH;
                 boxRect.width *= ratioW;
                 boxRect.height *= ratioH;
-
-                if (boxRect.x < 50 && boxRect.y > 250 && boxRect.y < 310) {
-                    std::cout << "boxRect:" << boxRect <<std::endl;
-                    std::cout << "boxRatio:" << boxRatio <<std::endl;
-                }
             }
             else
             {
@@ -175,37 +163,28 @@ extern "C" bool NvDsInferParseCraft(
                 boxRect.y *= ratioH;
                 boxRect.width *= ratioW;
                 boxRect.height *= ratioH;
-                if (boxRect.x < 50 && boxRect.y > 250 && boxRect.y < 310) {
-                    std::cout << "boxRect:" << boxRect <<std::endl;
-                    std::cout << "boxRatio:" << boxRatio <<std::endl;
-                }
             }
             bboxes.push_back(boxRect);
         }
 
-        if (bboxes.empty()) {
+        if (bboxes.empty())
+        {
             return true;
         }
-
 
         // create horizontal lists as done in easyocr but only considering
         // boxes, not polys
         std::vector<cv::Rect> &horizontalList = bboxes;
         std::sort(
             horizontalList.begin(), horizontalList.end(),
-            [](const cv::Rect &r1, const cv::Rect &r2) -> bool {
+            [](const cv::Rect &r1, const cv::Rect &r2) -> bool
+            {
                 // sort based on y center
                 return r1.y + 0.5 * r1.height < r2.y + 0.5 * r2.height;
             });
-        std::cout << "List:" << horizontalList.size() << std::endl;
-        for (size_t i = 0; i < horizontalList.size(); ++i) {
-            if (horizontalList[i].x < 50 && horizontalList[i].y > 250 && horizontalList[i].y < 310) {
-               std::cout << horizontalList[i] << std::endl;
-            }
-        }     
 
         std::vector<cv::Rect> mergableBoxes;
-        std::vector<std::vector<cv::Rect>> mergableBoxesList;
+        std::vector<std::vector<cv::Rect> > mergableBoxesList;
         const auto &firstBBox = horizontalList[0];
         float mergableBoxYCenters = firstBBox.y + 0.5 * firstBBox.height;
         float mergableBoxHeights = firstBBox.height;
@@ -265,7 +244,8 @@ extern "C" bool NvDsInferParseCraft(
             {
                 std::sort(
                     bboxList.begin(), bboxList.end(),
-                    [](const cv::Rect &r1, const cv::Rect &r2) -> bool {
+                    [](const cv::Rect &r1, const cv::Rect &r2) -> bool
+                    {
                         // sort based on y center
                         return r1.x < r2.x;
                     });

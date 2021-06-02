@@ -23,6 +23,7 @@ enable=1
 type=3
 uri=file://./../../data/demo_vids/youtube_fox.mp4
 num-sources=1
+# drop-frame-interval=30
 gpu-id=0
 nvbuf-memory-type=0
 
@@ -139,7 +140,7 @@ process-mode=2
 
 # text detection
 [secondary-gie1]
-enable=1
+enable=0
 gpu-id=0
 batch-size=2
 #Required by the app for OSD, not a plugin property
